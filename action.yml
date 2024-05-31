@@ -1,0 +1,47 @@
+name: 'Configure Datadog Test Visibility'
+description: 'Installs Datadog tracers for configured languages and enables Test Visibility'
+inputs:
+  languages:
+    description: 'List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet" (multiple languages can be specified as a space-separated list).'
+    required: true
+  service-name:
+    description: 'The name of the service or library being tested.'
+    required: true
+  api-key:
+    description: 'Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys'
+    required: true
+  site:
+    description: 'Datadog site (optional). See https://docs.datadoghq.com/getting_started/site for more information about sites.'
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Set GitHub Path
+      run: echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
+      shell: bash
+      env:
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
+
+    - name: Run configuration script
+      id: run-configuration-script
+      run: |
+        install_script_civisibility.sh >> "$GITHUB_ENV"
+      shell: bash
+      env:
+        DD_CIVISIBILITY_INSTRUMENTATION_LANGUAGES: ${{ inputs.languages }}
+        DD_TRACER_FOLDER: ${{ github.workspace }}/.datadog
+        DD_API_KEY: ${{ inputs.api-key }}
+        DD_SITE: ${{ inputs.site }}
+
+    - name: Propagate optional site input to environment variable
+      if: "${{ inputs.site != '' }}"
+      run: |
+        echo "DD_SITE=${{ inputs.site }}" >> "$GITHUB_ENV"
+      shell: bash
+
+    - name: Propagate service name and API key from inputs to environment variables
+      run: |
+        echo "DD_SERVICE=${{ inputs.service-name }}" >> "$GITHUB_ENV"
+        echo "DD_API_KEY=${{ inputs.api-key }}" >> "$GITHUB_ENV"
+        echo "DD_CIVISIBILITY_AUTO_INSTRUMENTATION_PROVIDER=github" >> "$GITHUB_ENV"
+      shell: bash
