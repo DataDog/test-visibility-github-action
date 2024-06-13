@@ -22,10 +22,22 @@ runs:
       env:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
-    - name: Run configuration script
+    - name: Download and run configuration script
       id: run-configuration-script
       run: |
-        install_script_civisibility.sh >> "$GITHUB_ENV"
+        local url="https://install.datadoghq.com/scripts/install_test_visibility_v1.sh"
+        local filepath="install_test_visibility.sh"
+      
+        if command -v curl >/dev/null 2>&1; then
+          curl -Lo "$filepath" "$url"
+        elif command -v wget >/dev/null 2>&1; then
+          wget -O "$filepath" "$url"
+        else
+          >&2 echo "Error: Neither wget nor curl is installed."
+          return 1
+        fi
+        
+        install_test_visibility.sh >> "$GITHUB_ENV"
       shell: bash
       env:
         DD_CIVISIBILITY_INSTRUMENTATION_LANGUAGES: ${{ inputs.languages }}
