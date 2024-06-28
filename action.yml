@@ -37,6 +37,7 @@ runs:
           return 1
         fi
         
+        chmod +x ./install_test_visibility.sh
         ./install_test_visibility.sh >> "$GITHUB_ENV"
       shell: bash
       env:
