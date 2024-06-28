@@ -37,7 +37,7 @@ runs:
           return 1
         fi
         
-        install_test_visibility.sh >> "$GITHUB_ENV"
+        install_test_visibility_v1.sh >> "$GITHUB_ENV"
       shell: bash
       env:
         DD_CIVISIBILITY_INSTRUMENTATION_LANGUAGES: ${{ inputs.languages }}
