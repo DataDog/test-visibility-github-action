@@ -18,7 +18,7 @@ It can help you investigate and mitigate performance problems and test failures 
    ```yaml
    steps:
      - name: Configure Datadog Test Visibility
-       uses: datadog/test-visibility-github-action@v1
+       uses: datadog/test-visibility-github-action@v1.0.1
        with:
          languages: java
          service-name: my-service
