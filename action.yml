@@ -28,13 +28,18 @@ runs:
     - name: Download and run configuration script
       id: run-configuration-script
       run: |
-        # See https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action#accessing-files-created-by-a-container-action
-        # When running a Docker container action, the Github workspace is available at a hard-coded path of /github/workspace
-        # When running a "regular", the workspace path varies.
-        # The symlink trick below is needed to make the same path /github/workspace/.datadog available for all types of actions
         mkdir -p $GITHUB_WORKSPACE/.datadog
-        mkdir -p /github/workspace
-        ln -s $GITHUB_WORKSPACE/.datadog /github/workspace/.datadog
+
+        if mkdir -p /github/workspace; then
+          # See https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action#accessing-files-created-by-a-container-action
+          # When running a Docker container action, the Github workspace is available at a hard-coded path of /github/workspace
+          # When running a "regular", the workspace path varies.
+          # The symlink trick below is needed to make the same path /github/workspace/.datadog available for all types of actions
+          ln -s $GITHUB_WORKSPACE/.datadog /github/workspace/.datadog
+          DD_TRACER_FOLDER=/github/workspace/.datadog
+        else
+          DD_TRACER_FOLDER=$GITHUB_WORKSPACE/.datadog
+        fi
 
         url="https://install.datadoghq.com/scripts/install_test_visibility_v1.sh"
         filepath="install_test_visibility.sh"
@@ -53,7 +58,6 @@ runs:
       shell: bash
       env:
         DD_CIVISIBILITY_INSTRUMENTATION_LANGUAGES: ${{ inputs.languages }}
-        DD_TRACER_FOLDER: /github/workspace/.datadog
         DD_API_KEY: ${{ inputs.api-key }}
         DD_SITE: ${{ inputs.site }}
 
