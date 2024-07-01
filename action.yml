@@ -32,7 +32,7 @@ runs:
         # When running a Docker container action, the Github workspace is available at a hard-coded path of /github/workspace
         # When running a "regular", the workspace path varies.
         # The symlink trick below is needed to make the same path /github/workspace/.datadog available for all types of actions
-        mkdir -p ${{ github.workspace }}/.datadog
+        mkdir -p $GITHUB_WORKSPACE/.datadog
         mkdir -p /github/workspace
         ln -s $GITHUB_WORKSPACE/.datadog /github/workspace/.datadog
 
