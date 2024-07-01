@@ -36,9 +36,9 @@ runs:
           # When running a "regular", the workspace path varies.
           # The symlink trick below is needed to make the same path /github/workspace/.datadog available for all types of actions
           ln -s $GITHUB_WORKSPACE/.datadog /github/workspace/.datadog
-          DD_TRACER_FOLDER=/github/workspace/.datadog
+          export DD_TRACER_FOLDER=/github/workspace/.datadog
         else
-          DD_TRACER_FOLDER=$GITHUB_WORKSPACE/.datadog
+          export DD_TRACER_FOLDER=$GITHUB_WORKSPACE/.datadog
         fi
 
         url="https://install.datadoghq.com/scripts/install_test_visibility_v1.sh"
