@@ -1,6 +1,4 @@
-![logo](CIVislogo.png)
-
-# Datadog Test Visibility GitHub Action
+# <img height="25" src="CIVislogo.png" /> Datadog Test Visibility GitHub Action
 
 GitHub Action that installs [Datadog Test Visibility](https://docs.datadoghq.com/tests/). 
 Supported languages are .NET, Java, Javascript, and Python.
