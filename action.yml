@@ -69,3 +69,25 @@ runs:
         echo "DD_API_KEY=${{ inputs.api-key }}" >> "$GITHUB_ENV"
         echo "DD_CIVISIBILITY_AUTO_INSTRUMENTATION_PROVIDER=github" >> "$GITHUB_ENV"
       shell: bash
+
+    - name: Print summary
+      run: |
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo '<a target="_blank" title="Datadog Test Visibility" href="https://docs.datadoghq.com/tests/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/nikita-tkachenko-datadog/gha-composite-test/main/logos/dd_logo_h_white.svg"><img width="200" alt="Datadog Test Visibility" src="https://raw.githubusercontent.com/nikita-tkachenko-datadog/gha-composite-test/main/logos/dd_logo_h_rgb.svg"></picture></a>' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Installed Test Visibility libraries:" >> $GITHUB_STEP_SUMMARY
+        
+        if [ ! -z "$DD_TRACER_VERSION_DOTNET" ]; then
+          echo "- __.NET:__ $DD_TRACER_VERSION_DOTNET" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ ! -z "$DD_TRACER_VERSION_JAVA" ]; then
+          echo "- __Java:__ $DD_TRACER_VERSION_JAVA" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ ! -z "$DD_TRACER_VERSION_JS" ]; then
+          echo "- __JS:__ $DD_TRACER_VERSION_JS" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ ! -z "$DD_TRACER_VERSION_PYTHON" ]; then
+          echo "- __Python:__ $DD_TRACER_VERSION_PYTHON" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "---" >> $GITHUB_STEP_SUMMARY
+      shell: bash
