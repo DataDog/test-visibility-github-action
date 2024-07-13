@@ -63,5 +63,5 @@ To work around this, the action provides a separate `DD_TRACE_PACKAGE` variable 
   shell: bash
   run: npm run test-ci
   env:
-    NODE_OPTIONS: -r $DD_TRACE_PACKAGE
+    NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
 ```
