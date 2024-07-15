@@ -30,7 +30,7 @@ runs:
       run: |
         mkdir -p $GITHUB_WORKSPACE/.datadog
 
-        if mkdir -p /github/workspace; then
+        if mkdir -p /github/workspace >/dev/null 2>&1; then
           # See https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action#accessing-files-created-by-a-container-action
           # When running a Docker container action, the Github workspace is available at a hard-coded path of /github/workspace
           # When running a "regular", the workspace path varies.
