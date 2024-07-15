@@ -11,12 +11,12 @@ It can help you investigate and mitigate performance problems and test failures 
 ## Usage
 
 1. Set [Datadog API key](https://app.datadoghq.com/organization-settings/api-keys) inside Settings > Secrets as `DD_API_KEY`.
-2. Add a step to your GitHub Actions workflow YAML that uses this action. Set the language, service name and [site](https://docs.datadoghq.com/getting_started/site/) parameters. It is best if the new step comes right before the step that runs your tests: 
+2. Add a step to your GitHub Actions workflow YAML that uses this action. Set the language, service name and [site](https://docs.datadoghq.com/getting_started/site/) parameters: 
 
    ```yaml
    steps:
      - name: Configure Datadog Test Visibility
-       uses: datadog/test-visibility-github-action@v1.0.2
+       uses: datadog/test-visibility-github-action@v1.0.3
        with:
          languages: java
          service-name: my-service
@@ -26,6 +26,11 @@ It can help you investigate and mitigate performance problems and test failures 
        run: |
          mvn clean test
    ```
+
+> [!IMPORTANT]  
+> It is best if the new step comes __right before__ the step that runs your tests.
+> Otherwise, installed tracing libraries might be removed by the steps that precede tests execution 
+> (for example, `actions/checkout` will wipe out whatever was installed in the action workspace).
 
 ## Configuration
 
