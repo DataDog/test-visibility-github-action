@@ -21,7 +21,7 @@ It can help you investigate and mitigate performance problems and test failures 
          languages: java
          service-name: my-service
          api-key: ${{ secrets.DD_API_KEY }}
-         site: US1
+         site: datadoghq.com # Change if your site is not US1
      - name: Run unit tests
        run: |
          mvn clean test
@@ -37,10 +37,10 @@ It can help you investigate and mitigate performance problems and test failures 
 The action has the following parameters:
 
 ```yaml
-languages: List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet" (multiple languages can be specified as a space-separated list).
+languages: List of languages to be instrumented. It can be either "all" or any of "java", "js", "python", "dotnet" (multiple languages can be specified as a space-separated list).
 service-name: The name of the service or library being tested.
 api-key: Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys
-site: Datadog site (optional), defaults to US1. See https://docs.datadoghq.com/getting_started/site for more information about sites.
+site: Datadog site (optional), defaults to datadoghq.com. See https://docs.datadoghq.com/getting_started/site for more information about sites. It can be "datadoghq.com", "us3.datadoghq.com", "us5.datadoghq.com", "datadoghq.eu" or "ap1.datadoghq.com".
 ```
 
 ### Additional configuration
