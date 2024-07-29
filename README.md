@@ -20,7 +20,7 @@ It can help you investigate and mitigate performance problems and test failures 
        with:
          languages: java
          service-name: my-service
-         api-key: ${{ secrets.DD_API_KEY }}
+         dd_api_key: ${{ secrets.DD_API_KEY }}
          site: datadoghq.com # Change if your site is not US1
      - name: Run unit tests
        run: |
@@ -39,8 +39,9 @@ The action has the following parameters:
 ```yaml
 languages: List of languages to be instrumented. It can be either "all" or any of "java", "js", "python", "dotnet" (multiple languages can be specified as a space-separated list).
 service-name: The name of the service or library being tested.
-api-key: Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys
+dd_api_key: Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys
 site: Datadog site (optional), defaults to datadoghq.com. See https://docs.datadoghq.com/getting_started/site for more information about sites. It can be "datadoghq.com", "us3.datadoghq.com", "us5.datadoghq.com", "datadoghq.eu" or "ap1.datadoghq.com".
+api-key (deprecated): Same as `dd_api_key`.
 ```
 
 ### Additional configuration

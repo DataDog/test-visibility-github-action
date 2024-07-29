@@ -12,7 +12,10 @@ inputs:
     required: true
   api-key:
     description: 'Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys'
-    required: true
+    required: false
+  dd_api_key:
+    description: 'Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys'
+    required: false
   site:
     description: 'Datadog site (optional). See https://docs.datadoghq.com/getting_started/site for more information about sites.'
     required: false
@@ -58,7 +61,7 @@ runs:
       shell: bash
       env:
         DD_CIVISIBILITY_INSTRUMENTATION_LANGUAGES: ${{ inputs.languages }}
-        DD_API_KEY: ${{ inputs.api-key }}
+        DD_API_KEY: ${{ inputs.api-key != '' && inputs.api-key || inputs.dd_api_key }}
         DD_SITE: ${{ inputs.site }}
 
     - name: Propagate optional site input to environment variable
@@ -70,7 +73,7 @@ runs:
     - name: Propagate service name and API key from inputs to environment variables
       run: |
         echo "DD_SERVICE=${{ inputs.service-name }}" >> "$GITHUB_ENV"
-        echo "DD_API_KEY=${{ inputs.api-key }}" >> "$GITHUB_ENV"
+        echo "DD_API_KEY=${{ inputs.api-key != '' && inputs.api-key || inputs.dd_api_key }}" >> "$GITHUB_ENV"
         echo "DD_CIVISIBILITY_AUTO_INSTRUMENTATION_PROVIDER=github" >> "$GITHUB_ENV"
       shell: bash
 
