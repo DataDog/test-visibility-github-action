@@ -28,8 +28,8 @@ jobs:
         uses: ./
         with:
           languages: java
-          service-name: my-service
-          api-key: "dummy"
+          service: my-service
+          api_key: "dummy"
 
       - name: Check If Java Tracing Works
         run: |

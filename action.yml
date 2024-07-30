@@ -7,15 +7,38 @@ inputs:
   languages:
     description: 'List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet" (multiple languages can be specified as a space-separated list).'
     required: true
-  service-name:
+  service:
     description: 'The name of the service or library being tested.'
-    required: true
-  api-key:
+    required: false
+  api_key:
     description: 'Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys'
-    required: true
+    required: false
   site:
     description: 'Datadog site (optional). See https://docs.datadoghq.com/getting_started/site for more information about sites.'
     required: false
+    default: datadoghq.com
+  dotnet-tracer-version:
+    description: 'The version of Datadog .NET tracer to use (optional). Defaults to the latest release.'
+    required: false
+  java-tracer-version:
+    description: 'The version of Datadog Java tracer to use (optional). Defaults to the latest release.'
+    required: false
+  js-tracer-version:
+    description: 'The version of Datadog JS tracer to use (optional). Defaults to the latest release.'
+    required: false
+  python-tracer-version:
+    description: 'The version of Datadog Python tracer to use (optional). Defaults to the latest release.'
+    required: false
+  # deprecated inputs
+  service-name:
+    description: 'Deprecated, alias for service'
+    required: true
+    deprecationMessage: 'service-name input is deprecated, please use service instead'
+  api-key:
+    description: 'Deprecated, alias for api_key'
+    required: true
+    deprecationMessage: 'api-key input is deprecated, please use api_key instead'
+
 runs:
   using: "composite"
   steps:
@@ -67,8 +90,12 @@ runs:
       shell: bash
       env:
         DD_CIVISIBILITY_INSTRUMENTATION_LANGUAGES: ${{ inputs.languages }}
-        DD_API_KEY: ${{ inputs.api-key }}
+        DD_API_KEY: ${{ inputs.api-key != '' && inputs.api-key || inputs.api_key }}
         DD_SITE: ${{ inputs.site }}
+        DD_SET_TRACER_VERSION_DOTNET: ${{ inputs.dotnet-tracer-version }}
+        DD_SET_TRACER_VERSION_JAVA: ${{ inputs.java-tracer-version }}
+        DD_SET_TRACER_VERSION_JS: ${{ inputs.js-tracer-version }}
+        DD_SET_TRACER_VERSION_PYTHON: ${{ inputs.python-tracer-version }}
 
     - name: Propagate optional site input to environment variable
       if: "${{ inputs.site != '' }}"
@@ -78,8 +105,8 @@ runs:
 
     - name: Propagate service name and API key from inputs to environment variables
       run: |
-        echo "DD_SERVICE=${{ inputs.service-name }}" >> "$GITHUB_ENV"
-        echo "DD_API_KEY=${{ inputs.api-key }}" >> "$GITHUB_ENV"
+        echo "DD_SERVICE=${{ inputs.service-name != '' && inputs.service-name || inputs.service }}" >> "$GITHUB_ENV"
+        echo "DD_API_KEY=${{ inputs.api-key != '' && inputs.api-key || inputs.api_key }}" >> "$GITHUB_ENV"
         echo "DD_CIVISIBILITY_AUTO_INSTRUMENTATION_PROVIDER=github" >> "$GITHUB_ENV"
       shell: bash
 
