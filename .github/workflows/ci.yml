@@ -34,7 +34,7 @@ jobs:
       - name: Check If Java Tracing Works
         run: |
           LOG_FILE=java-output.log
-          TRACER_INIT_LOG="DATADOG TRACER CONFIGURATION"
+          TRACER_INIT_LOG="CI Visibility settings"
           
           # there is currently a problem with Test Visibility in the Java tracer that prevents it from exiting when tracing an "empty" Java process, hence the timeout
           # the "true" is needed to not break the build when the timeout is triggered
