@@ -66,7 +66,7 @@ For security reasons Github [does not allow](https://github.blog/changelog/2023-
 
 ### Tracing JS tests (except `vitest`)
 
-If you're running tests with [vitest](https://github.com/vitest-dev/vitest), go to [Tracing vitest tests][#tracing-vitest-tests].
+If you're running tests with [vitest](https://github.com/vitest-dev/vitest), go to [Tracing vitest tests](#tracing-vitest-tests).
 
 To work around the `NODE_OPTIONS` limitation, the action provides a separate `DD_TRACE_PACKAGE` variable that needs to be appended to `NODE_OPTIONS` manually:
 
