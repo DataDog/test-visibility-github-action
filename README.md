@@ -62,10 +62,13 @@ Any [additional configuration values](https://docs.datadoghq.com/tracing/trace_c
 
 ## Limitations
 
-### Tracing JS tests
+For security reasons Github [does not allow](https://github.blog/changelog/2023-10-05-github-actions-node_options-is-now-restricted-from-github_env/) actions to alter the `NODE_OPTIONS` environment variable, so you'll have to pass it manually.
 
-For security reasons Github [does not allow](https://github.blog/changelog/2023-10-05-github-actions-node_options-is-now-restricted-from-github_env/) actions to alter the `NODE_OPTIONS` environment variable.
-To work around this, the action provides a separate `DD_TRACE_PACKAGE` variable that needs to be appended to node options manually:
+### Tracing JS tests (except `vitest`)
+
+If you're running tests with [vitest](https://github.com/vitest-dev/vitest), go to [Tracing vitest tests](#tracing-vitest-tests).
+
+To work around the `NODE_OPTIONS` limitation, the action provides a separate `DD_TRACE_PACKAGE` variable that needs to be appended to `NODE_OPTIONS` manually:
 
 ```yaml
 - name: Run tests
@@ -74,3 +77,19 @@ To work around this, the action provides a separate `DD_TRACE_PACKAGE` variable 
   env:
     NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
 ```
+
+### Tracing vitest tests
+
+ℹ️ This section is only relevant if you're running tests with [vitest](https://github.com/vitest-dev/vitest).
+
+To work around the `NODE_OPTIONS` limitation, the action provides a separate `DD_TRACE_PACKAGE` and `DD_TRACE_ESM_IMPORT` variables that need to be appended to `NODE_OPTIONS` manually:
+
+```yaml
+- name: Run tests
+  shell: bash
+  run: npm run test:vitest
+  env:
+    NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }} --import ${{ env.DD_TRACE_ESM_IMPORT }}
+```
+
+**Important**: `vitest` and `dd-trace` require Node.js>=18.19 or Node.js>=20.6 to work together.
