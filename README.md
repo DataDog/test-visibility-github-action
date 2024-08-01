@@ -16,7 +16,7 @@ It can help you investigate and mitigate performance problems and test failures 
    ```yaml
    steps:
      - name: Configure Datadog Test Visibility
-       uses: datadog/test-visibility-github-action@v1.0.5
+       uses: datadog/test-visibility-github-action@v1.0.7
        with:
          languages: java
          service: my-service
@@ -46,6 +46,7 @@ The action has the following parameters:
  | java-tracer-version | The version of Datadog Java tracer to use. Defaults to the latest release. | false | |
  | js-tracer-version | The version of Datadog JS tracer to use. Defaults to the latest release. | false | |
  | python-tracer-version | The version of Datadog Python tracer to use. Defaults to the latest release. | false | |
+ | java-instrumented-build-system | If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented. | false | |
 
 ### Additional configuration
 
