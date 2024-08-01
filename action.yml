@@ -29,6 +29,9 @@ inputs:
   python-tracer-version:
     description: 'The version of Datadog Python tracer to use (optional). Defaults to the latest release.'
     required: false
+  java-instrumented-build-system:
+    description: 'If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented.'
+    required: false
   # deprecated inputs
   service-name:
     description: 'Deprecated, alias for service'
@@ -96,6 +99,7 @@ runs:
         DD_SET_TRACER_VERSION_JAVA: ${{ inputs.java-tracer-version }}
         DD_SET_TRACER_VERSION_JS: ${{ inputs.js-tracer-version }}
         DD_SET_TRACER_VERSION_PYTHON: ${{ inputs.python-tracer-version }}
+        DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
 
     - name: Propagate optional site input to environment variable
       if: "${{ inputs.site != '' }}"
