@@ -67,24 +67,18 @@ runs:
           export DD_TRACER_FOLDER=$GITHUB_WORKSPACE/.datadog
         fi
 
-        script_url="https://install.datadoghq.com/scripts/install_test_visibility_v1.sh"
-        checksum_url="https://install.datadoghq.com/scripts/install_test_visibility_v1.sh.sha256sum"
-
         script_filepath="install_test_visibility.sh"
-        checksum_filepath="install_test_visibility.sh.sha256sum"
 
         if command -v curl >/dev/null 2>&1; then
-          curl -Lo "$script_filepath" "$script_url"
-          curl -Lo "$checksum_filepath" "$checksum_url"
+          curl -Lo "$script_filepath" "$INSTALLATION_SCRIPT_URL"
         elif command -v wget >/dev/null 2>&1; then
-          wget -O "$script_filepath" "$script_url"
-          wget -O "$checksum_filepath" "$checksum_url"
+          wget -O "$script_filepath" "$INSTALLATION_SCRIPT_URL"
         else
           >&2 echo "Error: Neither wget nor curl is installed."
           return 1
         fi
- 
-        if ! sha256sum --check --quiet $checksum_filepath; then 
+
+        if ! echo "$INSTALLATION_SCRIPT_CHECKSUM $script_filepath" | sha256sum --quiet -c -; then 
           return 1 
         fi
 
@@ -100,6 +94,8 @@ runs:
         DD_SET_TRACER_VERSION_JS: ${{ inputs.js-tracer-version }}
         DD_SET_TRACER_VERSION_PYTHON: ${{ inputs.python-tracer-version }}
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v1.sh
+        INSTALLATION_SCRIPT_CHECKSUM: a1edc11da0d00084c05525151aca5d377f86e3461c94d84f6172b760fa61e125
 
     - name: Propagate optional site input to environment variable
       if: "${{ inputs.site != '' }}"
