@@ -75,11 +75,20 @@ runs:
           wget -O "$script_filepath" "$INSTALLATION_SCRIPT_URL"
         else
           >&2 echo "Error: Neither wget nor curl is installed."
-          return 1
+          exit 1
         fi
 
-        if ! echo "$INSTALLATION_SCRIPT_CHECKSUM $script_filepath" | sha256sum --quiet -c -; then 
-          return 1 
+        if command -v sha256sum >/dev/null 2>&1; then
+          if ! echo "$INSTALLATION_SCRIPT_CHECKSUM $script_filepath" | sha256sum --quiet -c -; then
+            exit 1 
+          fi
+        elif command -v shasum >/dev/null 2>&1; then
+          if ! echo "$INSTALLATION_SCRIPT_CHECKSUM  $script_filepath" | shasum --quiet -a 256 -c -; then 
+            exit 1 
+          fi
+        else
+          >&2 echo "Error: Neither sha256sum nor shasum is installed."
+          exit 1
         fi
 
         chmod +x $script_filepath
@@ -94,8 +103,8 @@ runs:
         DD_SET_TRACER_VERSION_JS: ${{ inputs.js-tracer-version }}
         DD_SET_TRACER_VERSION_PYTHON: ${{ inputs.python-tracer-version }}
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v1.sh
-        INSTALLATION_SCRIPT_CHECKSUM: a1edc11da0d00084c05525151aca5d377f86e3461c94d84f6172b760fa61e125
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v2.sh
+        INSTALLATION_SCRIPT_CHECKSUM: 7c888969cf45b4a2340d5cf58afa2e7110a295904ca182724b88a3d19e9bc18d
 
     - name: Propagate optional site input to environment variable
       if: "${{ inputs.site != '' }}"
