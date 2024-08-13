@@ -75,11 +75,20 @@ runs:
           wget -O "$script_filepath" "$INSTALLATION_SCRIPT_URL"
         else
           >&2 echo "Error: Neither wget nor curl is installed."
-          return 1
+          exit 1
         fi
 
-        if ! echo "$INSTALLATION_SCRIPT_CHECKSUM $script_filepath" | sha256sum --quiet -c -; then 
-          return 1 
+        if command -v sha256sum >/dev/null 2>&1; then
+          if ! echo "$INSTALLATION_SCRIPT_CHECKSUM $script_filepath" | sha256sum --quiet -c -; then
+            exit 1 
+          fi
+        elif command -v shasum >/dev/null 2>&1; then
+          if ! echo "$INSTALLATION_SCRIPT_CHECKSUM  $script_filepath" | shasum --quiet -a 256 -c -; then 
+            exit 1 
+          fi
+        else
+          >&2 echo "Error: Neither sha256sum nor shasum is installed."
+          exit 1
         fi
 
         chmod +x $script_filepath
