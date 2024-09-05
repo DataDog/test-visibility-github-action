@@ -65,7 +65,7 @@ Any [additional configuration values](https://docs.datadoghq.com/tracing/trace_c
 
 For security reasons Github [does not allow](https://github.blog/changelog/2023-10-05-github-actions-node_options-is-now-restricted-from-github_env/) actions to alter the `NODE_OPTIONS` environment variable, so you'll have to pass it manually.
 
-### Tracing JS tests (except `vitest`)
+### Tracing JS tests (except `vitest` and `cypress`)
 
 If you're running tests with [vitest](https://github.com/vitest-dev/vitest), go to [Tracing vitest tests](#tracing-vitest-tests).
 
@@ -78,6 +78,8 @@ To work around the `NODE_OPTIONS` limitation, the action provides a separate `DD
   env:
     NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
 ```
+
+**NOTE**: To instrument your [Cypress](https://www.cypress.io/) tests with Datadog Test Visibility, please follow the manual steps in the [docs](https://docs.datadoghq.com/tests/setup/javascript/?tab=cypress).
 
 ### Tracing vitest tests
 
