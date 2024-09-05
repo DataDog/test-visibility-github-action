@@ -79,7 +79,7 @@ To work around the `NODE_OPTIONS` limitation, the action provides a separate `DD
     NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
 ```
 
-**NOTE**: To instrument your [Cypress](https://www.cypress.io/) tests with Datadog test visibility, please follow the manual steps in the [docs](https://docs.datadoghq.com/tests/setup/javascript).
+**NOTE**: To instrument your [Cypress](https://www.cypress.io/) tests with Datadog Test Visibility, please follow the manual steps in the [docs](https://docs.datadoghq.com/tests/setup/javascript/?tab=cypress).
 
 ### Tracing vitest tests
 
