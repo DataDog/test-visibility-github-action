@@ -9,10 +9,10 @@ inputs:
     required: true
   service:
     description: 'The name of the service or library being tested.'
-    required: false
+    required: true
   api_key:
     description: 'Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys'
-    required: false
+    required: true
   site:
     description: 'Datadog site (optional). See https://docs.datadoghq.com/getting_started/site for more information about sites.'
     required: false
@@ -35,11 +35,11 @@ inputs:
   # deprecated inputs
   service-name:
     description: 'Deprecated, alias for service'
-    required: true
+    required: false
     deprecationMessage: 'service-name input is deprecated, please use service instead'
   api-key:
     description: 'Deprecated, alias for api_key'
-    required: true
+    required: false
     deprecationMessage: 'api-key input is deprecated, please use api_key instead'
 
 runs:
