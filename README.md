@@ -46,7 +46,7 @@ The action has the following parameters:
  | java-tracer-version | The version of Datadog Java tracer to use. Defaults to the latest release. | false | |
  | js-tracer-version | The version of Datadog JS tracer to use. Defaults to the latest release. | false | |
  | python-tracer-version | The version of Datadog Python tracer to use. Defaults to the latest release. | false | |
- | java-instrumented-build-system | If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented. | false | |
+ | java-instrumented-build-system | If provided, only the specified build systems will be instrumented (allowed values are `gradle`,`maven`,`sbt`,`ant`,`all`). `all` is a special value that instruments every Java process. If this property is not provided, all known build systems will be instrumented (Gradle, Maven, SBT, Ant). | false | |
 
 ### Additional configuration
 
