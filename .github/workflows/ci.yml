@@ -30,6 +30,7 @@ jobs:
           languages: java
           service: my-service
           api_key: "dummy"
+          java-instrumented-build-system: "all"
 
       - name: Check If Java Tracing Works
         run: |
