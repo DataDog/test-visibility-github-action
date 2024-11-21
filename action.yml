@@ -7,9 +7,6 @@ inputs:
   languages:
     description: 'List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet" (multiple languages can be specified as a space-separated list).'
     required: true
-  service:
-    description: 'The name of the service or library being tested.'
-    required: true
   api_key:
     description: 'Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys'
     required: true
@@ -17,6 +14,9 @@ inputs:
     description: 'Datadog site (optional). See https://docs.datadoghq.com/getting_started/site for more information about sites.'
     required: false
     default: datadoghq.com
+  service:
+    description: 'The name of the service or library being tested.'
+    required: false
   dotnet-tracer-version:
     description: 'The version of Datadog .NET tracer to use (optional). Defaults to the latest release.'
     required: false
