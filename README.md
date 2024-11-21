@@ -11,7 +11,7 @@ It can help you investigate and mitigate performance problems and test failures 
 ## Usage
 
 1. Set [Datadog API key](https://app.datadoghq.com/organization-settings/api-keys) inside Settings > Secrets as `DD_API_KEY`.
-2. Add a step to your GitHub Actions workflow YAML that uses this action. Set the language, service name and [site](https://docs.datadoghq.com/getting_started/site/) parameters: 
+2. Add a step to your GitHub Actions workflow YAML that uses this action. Set the language and [site](https://docs.datadoghq.com/getting_started/site/) parameters: 
 
    ```yaml
    steps:
@@ -19,7 +19,6 @@ It can help you investigate and mitigate performance problems and test failures 
        uses: datadog/test-visibility-github-action@v2
        with:
          languages: java
-         service: my-service
          api_key: ${{ secrets.DD_API_KEY }}
          site: datadoghq.com # Change if your site is not US1
      - name: Run unit tests
@@ -39,9 +38,9 @@ The action has the following parameters:
 | Name | Description | Required | Default |
 | ---- | ----------- | -------- | ------- |
  | languages | List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet" (multiple languages can be specified as a space-separated list). | true | |
- | service | The name of the service or library being tested. | true | |
  | api_key | Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys | true | |
  | site | Datadog site. See https://docs.datadoghq.com/getting_started/site for more information about sites. | false | datadoghq.com |
+ | service | The name of the service or library being tested. | false | |
  | dotnet-tracer-version | The version of Datadog .NET tracer to use. Defaults to the latest release. | false | |
  | java-tracer-version | The version of Datadog Java tracer to use. Defaults to the latest release. | false | |
  | js-tracer-version | The version of Datadog JS tracer to use. Defaults to the latest release. | false | |
