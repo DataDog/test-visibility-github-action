@@ -1,21 +1,21 @@
-# <img height="25" src="logos/test_visibility_logo.png" />  Datadog Test Visibility GitHub Action
+# <img height="25" src="logos/test_visibility_logo.png" /> Datadog Test Optimization GitHub Action
 
-GitHub Action that installs and configures [Datadog Test Visibility](https://docs.datadoghq.com/tests/). 
-Supported languages are .NET, Java, Javascript, and Python.
+GitHub Action that installs and configures [Datadog Test Optimization](https://docs.datadoghq.com/tests/).
+Supported languages are .NET, Java, Javascript, Python, and Ruby.
 
-## About Datadog Test Visibility
+## About Datadog Test Optimization
 
-[Test Visibility](https://docs.datadoghq.com/tests/) provides a test-first view into your CI health by displaying important metrics and results from your tests. 
+[Test Optimization](https://docs.datadoghq.com/tests/) provides a test-first view into your CI health by displaying important metrics and results from your tests.
 It can help you investigate and mitigate performance problems and test failures that are most relevant to your work, focusing on the code you are responsible for, rather than the pipelines which run your tests.
 
 ## Usage
 
 1. Set [Datadog API key](https://app.datadoghq.com/organization-settings/api-keys) inside Settings > Secrets as `DD_API_KEY`.
-2. Add a step to your GitHub Actions workflow YAML that uses this action. Set the language and [site](https://docs.datadoghq.com/getting_started/site/) parameters: 
+2. Add a step to your GitHub Actions workflow YAML that uses this action. Set the language and [site](https://docs.datadoghq.com/getting_started/site/) parameters:
 
    ```yaml
    steps:
-     - name: Configure Datadog Test Visibility
+     - name: Configure Datadog Test Optimization
        uses: datadog/test-visibility-github-action@v2
        with:
          languages: java
@@ -26,26 +26,27 @@ It can help you investigate and mitigate performance problems and test failures 
          mvn clean test
    ```
 
-> [!IMPORTANT]  
-> It is best if the new step comes __right before__ the step that runs your tests.
-> Otherwise, installed tracing libraries might be removed by the steps that precede tests execution 
+> [!IMPORTANT]
+> It is best if the new step comes **right before** the step that runs your tests.
+> Otherwise, installed tracing libraries might be removed by the steps that precede tests execution
 > (for example, `actions/checkout` will wipe out whatever was installed in the action workspace).
 
 ## Configuration
 
 The action has the following parameters:
 
-| Name | Description | Required | Default |
-| ---- | ----------- | -------- | ------- |
- | languages | List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet" (multiple languages can be specified as a space-separated list). | true | |
- | api_key | Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys | true | |
- | site | Datadog site. See https://docs.datadoghq.com/getting_started/site for more information about sites. | false | datadoghq.com |
- | service | The name of the service or library being tested. | false | |
- | dotnet-tracer-version | The version of Datadog .NET tracer to use. Defaults to the latest release. | false | |
- | java-tracer-version | The version of Datadog Java tracer to use. Defaults to the latest release. | false | |
- | js-tracer-version | The version of Datadog JS tracer to use. Defaults to the latest release. | false | |
- | python-tracer-version | The version of Datadog Python tracer to use. Defaults to the latest release. | false | |
- | java-instrumented-build-system | If provided, only the specified build systems will be instrumented (allowed values are `gradle`,`maven`,`sbt`,`ant`,`all`). `all` is a special value that instruments every Java process. If this property is not provided, all known build systems will be instrumented (Gradle, Maven, SBT, Ant). | false | |
+| Name                           | Description                                                                                                                                                                                                                                                                                         | Required | Default       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------- |
+| languages                      | List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby" (multiple languages can be specified as a space-separated list).                                                                                                                       | true     |               |
+| api_key                        | Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys                                                                                                                                                                                                           | true     |               |
+| site                           | Datadog site. See https://docs.datadoghq.com/getting_started/site for more information about sites.                                                                                                                                                                                                 | false    | datadoghq.com |
+| service                        | The name of the service or library being tested.                                                                                                                                                                                                                                                    | false    |               |
+| dotnet-tracer-version          | The version of Datadog .NET tracer to use. Defaults to the latest release.                                                                                                                                                                                                                          | false    |               |
+| java-tracer-version            | The version of Datadog Java tracer to use. Defaults to the latest release.                                                                                                                                                                                                                          | false    |               |
+| js-tracer-version              | The version of Datadog JS tracer to use. Defaults to the latest release.                                                                                                                                                                                                                            | false    |               |
+| python-tracer-version          | The version of Datadog Python tracer to use. Defaults to the latest release.                                                                                                                                                                                                                        | false    |               |
+| ruby-tracer-version            | The version of datadog-ci Ruby gem to use. Defaults to the latest release.                                                                                                                                                                                                                          | false    |               |
+| java-instrumented-build-system | If provided, only the specified build systems will be instrumented (allowed values are `gradle`,`maven`,`sbt`,`ant`,`all`). `all` is a special value that instruments every Java process. If this property is not provided, all known build systems will be instrumented (Gradle, Maven, SBT, Ant). | false    |               |
 
 ### Additional configuration
 
@@ -78,7 +79,7 @@ To work around the `NODE_OPTIONS` limitation, the action provides a separate `DD
     NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
 ```
 
-**NOTE**: To instrument your [Cypress](https://www.cypress.io/) tests with Datadog Test Visibility, please follow the manual steps in the [docs](https://docs.datadoghq.com/tests/setup/javascript/?tab=cypress).
+**NOTE**: To instrument your [Cypress](https://www.cypress.io/) tests with Datadog Test Optimization, please follow the manual steps in the [docs](https://docs.datadoghq.com/tests/setup/javascript/?tab=cypress).
 
 ### Tracing vitest tests
 
