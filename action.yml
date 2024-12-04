@@ -5,7 +5,7 @@ branding:
   color: 'purple'
 inputs:
   languages:
-    description: 'List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet" (multiple languages can be specified as a space-separated list).'
+    description: 'List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby" (multiple languages can be specified as a space-separated list).'
     required: true
   api_key:
     description: 'Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys'
@@ -29,6 +29,9 @@ inputs:
   python-tracer-version:
     description: 'The version of Datadog Python tracer to use (optional). Defaults to the latest release.'
     required: false
+  ruby-tracer-version:
+    description: 'The version of datadog-ci Ruby gem to use (optional). Defaults to the latest release.'
+    required: false
   java-instrumented-build-system:
     description: 'If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented.'
     required: false
@@ -43,7 +46,7 @@ inputs:
     deprecationMessage: 'api-key input is deprecated, please use api_key instead'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Set GitHub Path
       run: echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
@@ -80,11 +83,11 @@ runs:
 
         if command -v sha256sum >/dev/null 2>&1; then
           if ! echo "$INSTALLATION_SCRIPT_CHECKSUM $script_filepath" | sha256sum --quiet -c -; then
-            exit 1 
+            exit 1
           fi
         elif command -v shasum >/dev/null 2>&1; then
-          if ! echo "$INSTALLATION_SCRIPT_CHECKSUM  $script_filepath" | shasum --quiet -a 256 -c -; then 
-            exit 1 
+          if ! echo "$INSTALLATION_SCRIPT_CHECKSUM  $script_filepath" | shasum --quiet -a 256 -c -; then
+            exit 1
           fi
         else
           >&2 echo "Error: Neither sha256sum nor shasum is installed."
@@ -102,9 +105,10 @@ runs:
         DD_SET_TRACER_VERSION_JAVA: ${{ inputs.java-tracer-version }}
         DD_SET_TRACER_VERSION_JS: ${{ inputs.js-tracer-version }}
         DD_SET_TRACER_VERSION_PYTHON: ${{ inputs.python-tracer-version }}
+        DD_SET_TRACER_VERSION_RUBY: ${{ inputs.ruby-tracer-version }}
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v4.sh
-        INSTALLATION_SCRIPT_CHECKSUM: 41c0df6833bd371cbebf38767cf358c94a3fd1547056281e3ae9cade53fb39e2
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v5.sh
+        INSTALLATION_SCRIPT_CHECKSUM: 903f1146fe123a1f7c6accdc48411546eead172f2d577fb41876d29b537eb7d6
 
     - name: Propagate optional site input to environment variable
       if: "${{ inputs.site != '' }}"
@@ -112,9 +116,14 @@ runs:
         echo "DD_SITE=${{ inputs.site }}" >> "$GITHUB_ENV"
       shell: bash
 
-    - name: Propagate service name and API key from inputs to environment variables
+    - name: Propagate optional service input to environment variable
+      if: "${{ inputs.service != '' || inputs.service-name != '' }}"
       run: |
         echo "DD_SERVICE=${{ inputs.service-name != '' && inputs.service-name || inputs.service }}" >> "$GITHUB_ENV"
+      shell: bash
+
+    - name: Propagate API key from input to environment variables and set provider
+      run: |
         echo "DD_API_KEY=${{ inputs.api-key != '' && inputs.api-key || inputs.api_key }}" >> "$GITHUB_ENV"
         echo "DD_CIVISIBILITY_AUTO_INSTRUMENTATION_PROVIDER=github" >> "$GITHUB_ENV"
       shell: bash
@@ -125,7 +134,7 @@ runs:
         echo '<a target="_blank" title="Datadog Test Visibility" href="https://docs.datadoghq.com/tests/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/DataDog/test-visibility-github-action/main/logos/dd_logo_h_white.svg"><img width="200" alt="Datadog Test Visibility" src="https://raw.githubusercontent.com/DataDog/test-visibility-github-action/main/logos/dd_logo_h_rgb.svg"></picture></a>' >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "Installed Test Visibility libraries:" >> $GITHUB_STEP_SUMMARY
-        
+
         if [ ! -z "$DD_TRACER_VERSION_DOTNET" ]; then
           echo "- __.NET:__ $DD_TRACER_VERSION_DOTNET" >> $GITHUB_STEP_SUMMARY
         fi
@@ -137,6 +146,9 @@ runs:
         fi
         if [ ! -z "$DD_TRACER_VERSION_PYTHON" ]; then
           echo "- __Python:__ $DD_TRACER_VERSION_PYTHON" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ ! -z "$DD_TRACER_VERSION_RUBY" ]; then
+          echo "- __Ruby:__ $DD_TRACER_VERSION_RUBY" >> $GITHUB_STEP_SUMMARY
         fi
         echo "---" >> $GITHUB_STEP_SUMMARY
       shell: bash
