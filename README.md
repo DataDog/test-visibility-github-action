@@ -1,5 +1,7 @@
 # <img height="25" src="logos/test_visibility_logo.png" /> Datadog Test Optimization GitHub Action
 
+Testing
+
 GitHub Action that installs and configures [Datadog Test Optimization](https://docs.datadoghq.com/tests/).
 Supported languages are .NET, Java, Javascript, Python, and Ruby.
 
