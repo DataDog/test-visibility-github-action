@@ -33,7 +33,7 @@ inputs:
     description: 'The version of datadog-ci Ruby gem to use (optional). Defaults to the latest release.'
     required: false
   go-tracer-version:
-    description: 'The version of Orchestrion to use (optional). Defaults to the latest release.'
+    description: 'The version of Orchestrion automatic compile-time instrumentation of Go code (https://github.com/datadog/orchestrion) to use (optional). Defaults to the latest release.'
     required: false
   java-instrumented-build-system:
     description: 'If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented.'
