@@ -157,7 +157,7 @@ runs:
           echo "- __Ruby:__ $DD_TRACER_VERSION_RUBY" >> $GITHUB_STEP_SUMMARY
         fi
         if [ ! -z "$DD_TRACER_VERSION_GO" ]; then
-          echo "- __.NET:__ $DD_TRACER_VERSION_GO" >> $GITHUB_STEP_SUMMARY
+          echo "- __Go:__ $DD_TRACER_VERSION_GO" >> $GITHUB_STEP_SUMMARY
         fi
         echo "---" >> $GITHUB_STEP_SUMMARY
       shell: bash
