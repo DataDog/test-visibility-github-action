@@ -1,7 +1,7 @@
 # <img height="25" src="logos/test_visibility_logo.png" /> Datadog Test Optimization GitHub Action
 
 GitHub Action that installs and configures [Datadog Test Optimization](https://docs.datadoghq.com/tests/).
-Supported languages are .NET, Java, Javascript, Python, and Ruby.
+Supported languages are .NET, Java, Javascript, Python, Ruby and Go.
 
 ## About Datadog Test Optimization
 
@@ -37,7 +37,7 @@ The action has the following parameters:
 
 | Name                           | Description                                                                                                                                                                                                                                                                                         | Required | Default       |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------- |
-| languages                      | List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby" (multiple languages can be specified as a space-separated list).                                                                                                                       | true     |               |
+| languages                      | List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby", "go" (multiple languages can be specified as a space-separated list).                                                                                                                 | true     |               |
 | api_key                        | Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys                                                                                                                                                                                                           | true     |               |
 | site                           | Datadog site. See https://docs.datadoghq.com/getting_started/site for more information about sites.                                                                                                                                                                                                 | false    | datadoghq.com |
 | service                        | The name of the service or library being tested.                                                                                                                                                                                                                                                    | false    |               |
@@ -46,6 +46,7 @@ The action has the following parameters:
 | js-tracer-version              | The version of Datadog JS tracer to use. Defaults to the latest release.                                                                                                                                                                                                                            | false    |               |
 | python-tracer-version          | The version of Datadog Python tracer to use. Defaults to the latest release.                                                                                                                                                                                                                        | false    |               |
 | ruby-tracer-version            | The version of datadog-ci Ruby gem to use. Defaults to the latest release.                                                                                                                                                                                                                          | false    |               |
+| go-tracer-version              | The version of Orchestrion to use. Defaults to the latest release.                                                                                                                                                                                                                                  | false    |               |
 | java-instrumented-build-system | If provided, only the specified build systems will be instrumented (allowed values are `gradle`,`maven`,`sbt`,`ant`,`all`). `all` is a special value that instruments every Java process. If this property is not provided, all known build systems will be instrumented (Gradle, Maven, SBT, Ant). | false    |               |
 
 ### Additional configuration
