@@ -5,7 +5,7 @@ branding:
   color: 'purple'
 inputs:
   languages:
-    description: 'List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby" (multiple languages can be specified as a space-separated list).'
+    description: 'List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby", "go" (multiple languages can be specified as a space-separated list).'
     required: true
   api_key:
     description: 'Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys'
@@ -31,6 +31,9 @@ inputs:
     required: false
   ruby-tracer-version:
     description: 'The version of datadog-ci Ruby gem to use (optional). Defaults to the latest release.'
+    required: false
+  go-tracer-version:
+    description: 'The version of Orchestrion automatic compile-time instrumentation of Go code (https://github.com/datadog/orchestrion) to use (optional). Defaults to the latest release.'
     required: false
   java-instrumented-build-system:
     description: 'If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented.'
@@ -108,9 +111,10 @@ runs:
         DD_SET_TRACER_VERSION_JS: ${{ inputs.js-tracer-version }}
         DD_SET_TRACER_VERSION_PYTHON: ${{ inputs.python-tracer-version }}
         DD_SET_TRACER_VERSION_RUBY: ${{ inputs.ruby-tracer-version }}
+        DD_SET_TRACER_VERSION_GO: ${{ inputs.go-tracer-version }}
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v5.sh
-        INSTALLATION_SCRIPT_CHECKSUM: 903f1146fe123a1f7c6accdc48411546eead172f2d577fb41876d29b537eb7d6
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v6.sh
+        INSTALLATION_SCRIPT_CHECKSUM: 23c0bbba82ee72342dd3967c3147d1086debf6482e8fd729e226d051dd152cd4
 
     - name: Propagate optional site input to environment variable
       if: "${{ inputs.site != '' }}"
@@ -151,6 +155,9 @@ runs:
         fi
         if [ ! -z "$DD_TRACER_VERSION_RUBY" ]; then
           echo "- __Ruby:__ $DD_TRACER_VERSION_RUBY" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ ! -z "$DD_TRACER_VERSION_GO" ]; then
+          echo "- __Go:__ $DD_TRACER_VERSION_GO" >> $GITHUB_STEP_SUMMARY
         fi
         echo "---" >> $GITHUB_STEP_SUMMARY
       shell: bash
