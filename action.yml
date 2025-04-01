@@ -113,8 +113,8 @@ runs:
         DD_SET_TRACER_VERSION_RUBY: ${{ inputs.ruby-tracer-version }}
         DD_SET_TRACER_VERSION_GO: ${{ inputs.go-tracer-version }}
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v9.sh
-        INSTALLATION_SCRIPT_CHECKSUM: dc524d824779b96fee12f6bf28b12f7da5c7095499bb82bc07981bdb60d6623a
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v10.sh
+        INSTALLATION_SCRIPT_CHECKSUM: 6fac0cc8224499a155e7253b936520ae763dce7bfec04900220f1a5a885821fc
 
     - name: Propagate optional site input to environment variable
       if: "${{ inputs.site != '' }}"
