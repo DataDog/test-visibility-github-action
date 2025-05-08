@@ -21,6 +21,10 @@ inputs:
     description: 'Enable caching of Datadog tracers and dependencies to speed up workflow runs.'
     required: false
     default: 'true'
+  force-cache-refresh:
+    description: 'Force refresh the cache by ignoring any existing cache entries. Useful when cache contains incorrect data.'
+    required: false
+    default: 'false'
   cache-key:
     description: 'Custom cache key to use for caching. If not provided, a default key will be generated based on the languages and tracer versions.'
     required: false
@@ -65,7 +69,7 @@ runs:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Set up cache
-      if: ${{ inputs.enable-cache == 'true' }}
+      if: ${{ inputs.enable-cache == 'true' && inputs.force-cache-refresh != 'true' }}
       uses: actions/cache@v3
       id: cache
       with:
@@ -74,9 +78,15 @@ runs:
         restore-keys: |
           dd-test-visibility-${{ inputs.languages }}-
 
+    - name: Clean cache directory if force refresh
+      if: ${{ inputs.force-cache-refresh == 'true' }}
+      run: |
+        rm -rf $GITHUB_WORKSPACE/.datadog
+      shell: bash
+
     - name: Download and run configuration script
       id: run-configuration-script
-      if: ${{ steps.cache.outputs.cache-hit != 'true' || inputs.enable-cache != 'true' }}
+      if: ${{ steps.cache.outputs.cache-hit != 'true' || inputs.enable-cache != 'true' || inputs.force-cache-refresh == 'true' }}
       run: |
         mkdir -p $GITHUB_WORKSPACE/.datadog
 
