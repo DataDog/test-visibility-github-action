@@ -17,6 +17,13 @@ inputs:
   service:
     description: 'The name of the service or library being tested.'
     required: false
+  enable-cache:
+    description: 'Enable caching of Datadog tracers and dependencies to speed up workflow runs.'
+    required: false
+    default: 'true'
+  cache-key:
+    description: 'Custom cache key to use for caching. If not provided, a default key will be generated based on the languages and tracer versions.'
+    required: false
   dotnet-tracer-version:
     description: 'The version of Datadog .NET tracer to use (optional). Defaults to the latest release.'
     required: false
@@ -57,8 +64,19 @@ runs:
       env:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
+    - name: Set up cache
+      if: ${{ inputs.enable-cache == 'true' }}
+      uses: actions/cache@v3
+      id: cache
+      with:
+        path: ${{ github.workspace }}/.datadog
+        key: ${{ inputs.cache-key || format('dd-test-visibility-{0}-{1}-{2}-{3}-{4}-{5}', inputs.languages, inputs.dotnet-tracer-version, inputs.java-tracer-version, inputs.js-tracer-version, inputs.python-tracer-version, inputs.ruby-tracer-version) }}
+        restore-keys: |
+          dd-test-visibility-${{ inputs.languages }}-
+
     - name: Download and run configuration script
       id: run-configuration-script
+      if: ${{ steps.cache.outputs.cache-hit != 'true' || inputs.enable-cache != 'true' }}
       run: |
         mkdir -p $GITHUB_WORKSPACE/.datadog
 
