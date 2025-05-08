@@ -17,7 +17,7 @@ inputs:
   service:
     description: 'The name of the service or library being tested.'
     required: false
-  enable-cache:
+  cache:
     description: 'Enable caching of Datadog tracers and dependencies to speed up workflow runs.'
     required: false
     default: 'true'
@@ -69,7 +69,7 @@ runs:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Set up cache
-      if: ${{ inputs.enable-cache == 'true' && inputs.force-cache-refresh != 'true' }}
+      if: ${{ inputs.cache == 'true' && inputs.force-cache-refresh != 'true' }}
       uses: actions/cache@v3
       id: cache
       with:
@@ -86,7 +86,7 @@ runs:
 
     - name: Download and run configuration script
       id: run-configuration-script
-      if: ${{ steps.cache.outputs.cache-hit != 'true' || inputs.enable-cache != 'true' || inputs.force-cache-refresh == 'true' }}
+      if: ${{ steps.cache.outputs.cache-hit != 'true' || inputs.cache != 'true' || inputs.force-cache-refresh == 'true' }}
       run: |
         mkdir -p $GITHUB_WORKSPACE/.datadog
 
