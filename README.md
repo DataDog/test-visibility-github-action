@@ -70,9 +70,8 @@ steps:
 
 #### Cache Cleaning
 
-If you encounter issues with cached data, you have two options to clean the cache:
+If you encounter issues with cached data, you can use the `force-cache-refresh` parameter to ignore existing cache entries and create a fresh cache:
 
-1. **Force Cache Refresh**: Use the `force-cache-refresh` parameter to ignore existing cache entries and create a fresh cache:
 ```yaml
 steps:
   - name: Configure Datadog Test Optimization
@@ -81,22 +80,6 @@ steps:
       languages: java
       api_key: ${{ secrets.DD_API_KEY }}
       force-cache-refresh: true
-```
-
-2. **Manual Cache Deletion**: You can manually delete the cache for a specific key using the GitHub Actions Cache API. Create a workflow with the following step:
-```yaml
-steps:
-  - name: Delete Cache
-    uses: actions/github-script@v6
-    with:
-      script: |
-        const cacheKey = 'dd-test-visibility-java-1.0.0-2.0.0-3.0.0-4.0.0-5.0.0-6.0.0'; // Replace with your cache key
-        const response = await github.rest.actions.deleteActionsCacheByKey({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          key: cacheKey
-        });
-        console.log(`Cache deletion response: ${response.status}`);
 ```
 
 ### Additional configuration
