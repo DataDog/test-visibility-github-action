@@ -36,11 +36,14 @@ It can help you investigate and mitigate performance problems and test failures 
 The action has the following parameters:
 
 | Name                           | Description                                                                                                                                                                                                                                                                                         | Required | Default       |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------- |
+|--------------------------------| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------- |
 | languages                      | List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby", "go" (multiple languages can be specified as a space-separated list).                                                                                                                 | true     |               |
 | api_key                        | Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys                                                                                                                                                                                                           | true     |               |
 | site                           | Datadog site. See https://docs.datadoghq.com/getting_started/site for more information about sites.                                                                                                                                                                                                 | false    | datadoghq.com |
 | service                        | The name of the service or library being tested.                                                                                                                                                                                                                                                    | false    |               |
+| cache                          | Enable caching of Datadog tracers and dependencies to speed up workflow runs.                                                                                                                                                                                                                       | false    | true          |
+| force-cache-refresh            | Force refresh the cache by ignoring any existing cache entries. Useful when cache contains incorrect data.                                                                                                                                                                                          | false    | false         |
+| cache-key                      | Custom cache key to use for caching. If not provided, a default key will be generated based on the languages and tracer versions.                                                                                                                                                                   | false    |               |
 | dotnet-tracer-version          | The version of Datadog .NET tracer to use. Defaults to the latest release.                                                                                                                                                                                                                          | false    |               |
 | java-tracer-version            | The version of Datadog Java tracer to use. Defaults to the latest release.                                                                                                                                                                                                                          | false    |               |
 | js-tracer-version              | The version of Datadog JS tracer to use. Defaults to the latest release.                                                                                                                                                                                                                            | false    |               |
@@ -48,6 +51,36 @@ The action has the following parameters:
 | ruby-tracer-version            | The version of datadog-ci Ruby gem to use. Defaults to the latest release.                                                                                                                                                                                                                          | false    |               |
 | go-tracer-version              | The version of Orchestrion to use. Defaults to the latest release.                                                                                                                                                                                                                                  | false    |               |
 | java-instrumented-build-system | If provided, only the specified build systems will be instrumented (allowed values are `gradle`,`maven`,`sbt`,`ant`,`all`). `all` is a special value that instruments every Java process. If this property is not provided, all known build systems will be instrumented (Gradle, Maven, SBT, Ant). | false    |               |
+
+### Caching
+
+The action supports caching of Datadog tracers and dependencies to speed up workflow runs. Caching is enabled by default but can be disabled by setting `cache: false`. The cache key is automatically generated based on the languages and tracer versions, but you can provide a custom cache key using the `cache-key` parameter.
+
+Example with custom cache key:
+```yaml
+steps:
+  - name: Configure Datadog Test Optimization
+    uses: datadog/test-visibility-github-action@v2
+    with:
+      languages: java
+      api_key: ${{ secrets.DD_API_KEY }}
+      cache: true
+      cache-key: my-custom-cache-key
+```
+
+#### Cache Cleaning
+
+If you encounter issues with cached data, you can use the `force-cache-refresh` parameter to ignore existing cache entries and create a fresh cache:
+
+```yaml
+steps:
+  - name: Configure Datadog Test Optimization
+    uses: datadog/test-visibility-github-action@v2
+    with:
+      languages: java
+      api_key: ${{ secrets.DD_API_KEY }}
+      force-cache-refresh: true
+```
 
 ### Additional configuration
 
