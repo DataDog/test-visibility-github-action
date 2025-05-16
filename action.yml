@@ -51,11 +51,40 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Set GitHub Path
-      run: echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
+    - name: Set global envs and github path
+      run: |
+        echo "INSTALLATION_SCRIPT_URL=$INSTALLATION_SCRIPT_URL" >> $GITHUB_ENV
+        echo "INSTALLATION_SCRIPT_CHECKSUM=$INSTALLATION_SCRIPT_CHECKSUM" >> $GITHUB_ENV
+        echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
       shell: bash
       env:
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v11.sh
+        INSTALLATION_SCRIPT_CHECKSUM: fc64c45fd4b45b4b01773c58a3a116bef212dc4095508a6e27e19e50e901bd55
         GITHUB_ACTION_PATH: ${{ github.action_path }}
+
+    - name: Get Go cache directories
+      if: ${{ contains(inputs.languages, 'go') || inputs.languages == 'all' }}
+      id: go-cache-paths
+      shell: bash
+      run: |
+        echo "TAR_OPTIONS=--skip-old-files" >> $GITHUB_ENV
+        echo "GOMODCACHE_PATH=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
+        echo "GOCACHE_PATH=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+        echo "GOVERSION=$(go env GOVERSION)" >> $GITHUB_OUTPUT
+        echo "GOPATH=$(go env GOPATH)" >> $GITHUB_OUTPUT
+
+    - name: Go cache
+      uses: actions/cache@v4
+      if: ${{ contains(inputs.languages, 'go') || inputs.languages == 'all' }}
+      id: go-cache
+      with:
+        path: |
+          ${{ steps.go-cache-paths.outputs.GOMODCACHE_PATH }}
+          ${{ steps.go-cache-paths.outputs.GOCACHE_PATH }}
+          ${{ env.GITHUB_WORKSPACE }}/.datadog
+          /github/workspace/.datadog
+          ${{ steps.go-cache-paths.outputs.GOPATH }}/bin/orchestrion
+        key: test-optimization-go-${{ env.INSTALLATION_SCRIPT_CHECKSUM }}-${{ steps.go-cache-paths.outputs.GOVERSION }}-${{ inputs.go-tracer-version }}-${{ hashFiles('**/go.mod') }}-${{ hashFiles('**/go.sum') }}
 
     - name: Download and run configuration script
       id: run-configuration-script
@@ -113,8 +142,6 @@ runs:
         DD_SET_TRACER_VERSION_RUBY: ${{ inputs.ruby-tracer-version }}
         DD_SET_TRACER_VERSION_GO: ${{ inputs.go-tracer-version }}
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v11.sh
-        INSTALLATION_SCRIPT_CHECKSUM: fc64c45fd4b45b4b01773c58a3a116bef212dc4095508a6e27e19e50e901bd55
 
     - name: Propagate optional site input to environment variable
       if: "${{ inputs.site != '' }}"
@@ -161,3 +188,4 @@ runs:
         fi
         echo "---" >> $GITHUB_STEP_SUMMARY
       shell: bash
+
