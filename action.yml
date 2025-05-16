@@ -38,6 +38,11 @@ inputs:
   java-instrumented-build-system:
     description: 'If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented.'
     required: false
+  cache:
+    description: 'Enable caching (optional). Defaults to true.'
+    required: false
+    type: boolean
+    default: true
   # deprecated inputs
   service-name:
     description: 'Deprecated, alias for service'
@@ -63,7 +68,7 @@ runs:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Get Go cache directories
-      if: ${{ contains(inputs.languages, 'go') || inputs.languages == 'all' }}
+      if: ${{ inputs.cache == 'true' && (contains(inputs.languages, 'go') || inputs.languages == 'all') }}
       id: go-cache-paths
       shell: bash
       run: |
@@ -75,12 +80,11 @@ runs:
 
     - name: Go cache
       uses: actions/cache@v4
-      if: ${{ contains(inputs.languages, 'go') || inputs.languages == 'all' }}
+      if: ${{ inputs.cache == 'true' && (contains(inputs.languages, 'go') || inputs.languages == 'all') }}
       id: go-cache
       with:
         path: |
           ${{ steps.go-cache-paths.outputs.GOMODCACHE_PATH }}
-          ${{ steps.go-cache-paths.outputs.GOCACHE_PATH }}
           ${{ env.GITHUB_WORKSPACE }}/.datadog
           /github/workspace/.datadog
           ${{ steps.go-cache-paths.outputs.GOPATH }}/bin/orchestrion
