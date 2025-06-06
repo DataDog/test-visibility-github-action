@@ -30,6 +30,7 @@ jobs:
           languages: java
           api_key: "dummy"
           java-instrumented-build-system: "all"
+          print-github-step-summary: false
 
       - name: Check If Java Tracing Works
         run: |
