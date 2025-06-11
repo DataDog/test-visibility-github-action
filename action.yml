@@ -43,6 +43,11 @@ inputs:
     required: false
     type: boolean
     default: true
+  print-github-step-summary:
+    description: 'Print a summary of the installed tracers to the GitHub step summary, otherwise the summary is printed to console (optional). Defaults to true.'
+    required: false
+    type: boolean
+    default: true
   # deprecated inputs
   service-name:
     description: 'Deprecated, alias for service'
@@ -191,5 +196,10 @@ runs:
           echo "- __Go:__ $DD_TRACER_VERSION_GO" >> $GITHUB_STEP_SUMMARY
         fi
         echo "---" >> $GITHUB_STEP_SUMMARY
+
+        if [ "${{ inputs.print-github-step-summary }}" == "false" ]; then
+          cat $GITHUB_STEP_SUMMARY
+          rm -f $GITHUB_STEP_SUMMARY
+        fi
       shell: bash
 
