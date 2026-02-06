@@ -65,6 +65,7 @@ runs:
       run: |
         echo "INSTALLATION_SCRIPT_URL=$INSTALLATION_SCRIPT_URL" >> $GITHUB_ENV
         echo "INSTALLATION_SCRIPT_CHECKSUM=$INSTALLATION_SCRIPT_CHECKSUM" >> $GITHUB_ENV
+        echo "JOB_CHECK_RUN_ID=${{ job.check_run_id }}" >> $GITHUB_ENV
         echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
       shell: bash
       env:
