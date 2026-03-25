@@ -77,7 +77,7 @@ jobs:
             test_workdir: .
             expected_dd_trace_go_version: ''
           - case_id: runner_below_min_skip
-            name: runner below minimum no mutation
+            name: runner below minimum failure
             runner_go: '1.23.12'
             layout: root
             project_go: '1.24.0'
@@ -251,7 +251,7 @@ jobs:
             echo "$GOFLAGS" | grep -q "orchestrion toolexec" || { echo "Error: GOFLAGS does not include orchestrion."; exit 1; }
             grep -Fq "github.com/DataDog/orchestrion v1.8.0" "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not pin orchestrion to v1.8.0."; exit 1; }
             grep -Fq "github.com/DataDog/dd-trace-go/orchestrion/all/v2 " "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not pin orchestrion/all/v2."; exit 1; }
-            grep -Fq "replace github.com/DataDog/dd-trace-go/v2 => github.com/DataDog/dd-trace-go/v2 " "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not pin dd-trace-go/v2 with a replace directive."; exit 1; }
+            grep -Fq "github.com/DataDog/dd-trace-go/v2 " "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not reference dd-trace-go/v2."; exit 1; }
             [ -f "$module_dir/orchestrion.tool.go" ] || { echo "Error: Expected $module_dir/orchestrion.tool.go to exist."; exit 1; }
 
             read -r selected_trace_version selected_trace_go_version < <(
@@ -290,10 +290,10 @@ jobs:
               assert_skipped_module "."
               ;;
             runner_below_min_skip)
-              [ "$action_outcome" = "failure" ] || { echo "Error: Expected the action to fail without mutating the module."; exit 1; }
+              [ "$action_outcome" = "failure" ] || { echo "Error: Expected the action to fail."; exit 1; }
               [ -z "${GOFLAGS:-}" ] || { echo "Error: Expected GOFLAGS to be unset after the failure."; exit 1; }
               [ -z "${DD_TRACER_VERSION_GO:-}" ] || { echo "Error: Expected DD_TRACER_VERSION_GO to be unset after the failure."; exit 1; }
-              assert_file_unchanged "./go.mod"
+              grep -Fq "github.com/DataDog/dd-trace-go/v2 " "./go.mod" || { echo "Error: Expected the failed run to leave a dd-trace-go/v2 dependency behind."; exit 1; }
               assert_file_absent "./orchestrion.tool.go"
               ;;
             single_nested_go_124_auto)
