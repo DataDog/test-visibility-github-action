@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  test-action:
-    name: GitHub Actions Test
+  test-java-action:
+    name: Java Smoke Test
     runs-on: ubuntu-latest
     container:
       image: adoptopenjdk/openjdk11:latest
@@ -38,3 +38,97 @@ jobs:
           
           java -version 2>&1 | tee $LOG_FILE
           grep -q "$TRACER_INIT_LOG" $LOG_FILE || { echo "Error: Output does not contain tracer initialisation log: $TRACER_INIT_LOG"; exit 1; }
+
+  test-go-action:
+    name: Go Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.1'
+
+      - name: Create Go Test Project
+        run: |
+          cat > go.mod <<'EOF'
+          module example.com/test-visibility-action-smoke
+
+          go 1.24.0
+          EOF
+
+          cat > smoke_test.go <<'EOF'
+          package smoke
+
+          import "testing"
+
+          func TestSmoke(t *testing.T) {}
+          EOF
+
+      - name: Run Instrumentation Action
+        uses: ./
+        with:
+          languages: go
+          api_key: "dummy"
+          cache: false
+
+      - name: Check If Go Tracing Was Configured
+        run: |
+          [ -n "$GOFLAGS" ] || { echo "Error: GOFLAGS was not set."; exit 1; }
+          [ -n "$DD_TRACER_VERSION_GO" ] || { echo "Error: DD_TRACER_VERSION_GO was not set."; exit 1; }
+          echo "$GOFLAGS" | grep -q "orchestrion toolexec" || { echo "Error: GOFLAGS does not include orchestrion."; exit 1; }
+
+      - name: Run Go Tests
+        run: go test ./...
+
+  test-go-action-module-dir:
+    name: Go Module Dir Smoke Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.1'
+
+      - name: Create Nested Go Test Project
+        run: |
+          mkdir -p services/payments
+
+          cat > services/payments/go.mod <<'EOF'
+          module example.com/test-visibility-action-smoke/payments
+
+          go 1.24.0
+          EOF
+
+          cat > services/payments/smoke_test.go <<'EOF'
+          package payments
+
+          import "testing"
+
+          func TestSmoke(t *testing.T) {}
+          EOF
+
+      - name: Run Instrumentation Action
+        uses: ./
+        with:
+          languages: go
+          api_key: "dummy"
+          go-module-dir: ./services/payments
+          cache: false
+
+      - name: Check If Go Tracing Was Configured
+        run: |
+          [ -n "$GOFLAGS" ] || { echo "Error: GOFLAGS was not set."; exit 1; }
+          [ -n "$DD_TRACER_VERSION_GO" ] || { echo "Error: DD_TRACER_VERSION_GO was not set."; exit 1; }
+          echo "$GOFLAGS" | grep -q "orchestrion toolexec" || { echo "Error: GOFLAGS does not include orchestrion."; exit 1; }
+
+      - name: Run Go Tests
+        working-directory: services/payments
+        run: go test ./...
