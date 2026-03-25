@@ -77,12 +77,12 @@ jobs:
             test_workdir: .
             expected_dd_trace_go_version: ''
           - case_id: runner_below_min_skip
-            name: runner below minimum skip
+            name: runner below minimum no mutation
             runner_go: '1.23.12'
             layout: root
             project_go: '1.24.0'
             go_module_dir: ''
-            expect_action_failure: false
+            expect_action_failure: true
             run_go_tests: false
             test_workdir: .
             expected_dd_trace_go_version: ''
@@ -196,7 +196,7 @@ jobs:
 
           mkdir -p .before
           while IFS= read -r go_mod_path; do
-            snapshot_path=".before/${go_mod_path#./}"
+            snapshot_path=".before/${go_mod_path#./}.snapshot"
             mkdir -p "$(dirname "$snapshot_path")"
             cp "$go_mod_path" "$snapshot_path"
           done < <(find . -path './.git' -prune -o -name go.mod -print | sort)
@@ -221,7 +221,7 @@ jobs:
 
           assert_file_unchanged() {
             local path="$1"
-            local snapshot_path=".before/${path#./}"
+            local snapshot_path=".before/${path#./}.snapshot"
 
             if ! cmp -s "$snapshot_path" "$path"; then
               echo "Error: Expected $path to remain unchanged."
@@ -241,15 +241,30 @@ jobs:
 
           assert_instrumented_module() {
             local module_dir="$1"
-            local expected_version="$2"
+            local go_ceiling="$2"
+            local selected_trace_version
+            local selected_trace_go_version
 
             [ -n "${GOFLAGS:-}" ] || { echo "Error: GOFLAGS was not set."; exit 1; }
             [ -n "${DD_TRACER_VERSION_GO:-}" ] || { echo "Error: DD_TRACER_VERSION_GO was not set."; exit 1; }
             [ "$DD_TRACER_VERSION_GO" = "v1.8.0" ] || { echo "Error: Expected DD_TRACER_VERSION_GO to be v1.8.0, got '$DD_TRACER_VERSION_GO'."; exit 1; }
             echo "$GOFLAGS" | grep -q "orchestrion toolexec" || { echo "Error: GOFLAGS does not include orchestrion."; exit 1; }
-            grep -Fq "github.com/DataDog/dd-trace-go/v2 $expected_version" "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not pin dd-trace-go/v2 to $expected_version."; exit 1; }
-            grep -Fq "github.com/DataDog/dd-trace-go/orchestrion/all/v2 $expected_version" "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not pin orchestrion/all/v2 to $expected_version."; exit 1; }
+            grep -Fq "github.com/DataDog/orchestrion v1.8.0" "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not pin orchestrion to v1.8.0."; exit 1; }
+            grep -Fq "github.com/DataDog/dd-trace-go/orchestrion/all/v2 " "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not pin orchestrion/all/v2."; exit 1; }
+            grep -Fq "replace github.com/DataDog/dd-trace-go/v2 => github.com/DataDog/dd-trace-go/v2 " "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not pin dd-trace-go/v2 with a replace directive."; exit 1; }
             [ -f "$module_dir/orchestrion.tool.go" ] || { echo "Error: Expected $module_dir/orchestrion.tool.go to exist."; exit 1; }
+
+            read -r selected_trace_version selected_trace_go_version < <(
+              env -u GOFLAGS bash -lc "cd \"$module_dir\" && go list -m -f '{{.Version}} {{.GoVersion}}' github.com/DataDog/dd-trace-go/orchestrion/all/v2"
+            )
+
+            [ -n "$selected_trace_version" ] || { echo "Error: Could not read the selected dd-trace-go version."; exit 1; }
+            [ -n "$selected_trace_go_version" ] || { echo "Error: Could not read the selected dd-trace-go Go version."; exit 1; }
+
+            if [ "$(printf '%s\n%s\n' "$selected_trace_go_version" "$go_ceiling" | sort -V | head -n 1)" != "$selected_trace_go_version" ]; then
+              echo "Error: Selected dd-trace-go Go version $selected_trace_go_version exceeds the project ceiling $go_ceiling."
+              exit 1
+            fi
           }
 
           assert_skipped_module() {
@@ -264,27 +279,30 @@ jobs:
           case "${{ matrix.case_id }}" in
             root_go_124_success)
               [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to succeed."; exit 1; }
-              assert_instrumented_module "." "v2.6.0"
+              assert_instrumented_module "." "1.24.0"
               ;;
             root_go_125_success)
               [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to succeed."; exit 1; }
-              assert_instrumented_module "." "v2.7.0"
+              assert_instrumented_module "." "1.25.0"
               ;;
             root_go_122_skip)
               [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to skip cleanly."; exit 1; }
               assert_skipped_module "."
               ;;
             runner_below_min_skip)
-              [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to skip cleanly."; exit 1; }
-              assert_skipped_module "."
+              [ "$action_outcome" = "failure" ] || { echo "Error: Expected the action to fail without mutating the module."; exit 1; }
+              [ -z "${GOFLAGS:-}" ] || { echo "Error: Expected GOFLAGS to be unset after the failure."; exit 1; }
+              [ -z "${DD_TRACER_VERSION_GO:-}" ] || { echo "Error: Expected DD_TRACER_VERSION_GO to be unset after the failure."; exit 1; }
+              assert_file_unchanged "./go.mod"
+              assert_file_absent "./orchestrion.tool.go"
               ;;
             single_nested_go_124_auto)
               [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to succeed."; exit 1; }
-              assert_instrumented_module "services/payments" "v2.6.0"
+              assert_instrumented_module "services/payments" "1.24.0"
               ;;
             single_nested_go_125_auto)
               [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to succeed."; exit 1; }
-              assert_instrumented_module "services/payments" "v2.7.0"
+              assert_instrumented_module "services/payments" "1.25.0"
               ;;
             multiple_modules_without_override_skip)
               [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to skip cleanly."; exit 1; }
@@ -293,7 +311,7 @@ jobs:
               ;;
             multiple_modules_with_override_success)
               [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to succeed."; exit 1; }
-              assert_instrumented_module "services/payments" "v2.7.0"
+              assert_instrumented_module "services/payments" "1.25.0"
               assert_file_unchanged "services/orders/go.mod"
               assert_file_absent "services/orders/orchestrion.tool.go"
               ;;
