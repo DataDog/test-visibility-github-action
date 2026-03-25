@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  test-action:
-    name: GitHub Actions Test
+  test-java-action:
+    name: Java Smoke Test
     runs-on: ubuntu-latest
     container:
       image: adoptopenjdk/openjdk11:latest
@@ -38,3 +38,299 @@ jobs:
           
           java -version 2>&1 | tee $LOG_FILE
           grep -q "$TRACER_INIT_LOG" $LOG_FILE || { echo "Error: Output does not contain tracer initialisation log: $TRACER_INIT_LOG"; exit 1; }
+
+  test-go-action-matrix:
+    name: Go Matrix (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - case_id: root_go_124_success
+            name: root go1.24 success
+            runner_go: '1.26.1'
+            layout: root
+            project_go: '1.24.0'
+            go_module_dir: ''
+            expect_action_failure: false
+            run_go_tests: true
+            test_workdir: .
+            expected_dd_trace_go_version: v2.6.0
+          - case_id: root_go_125_success
+            name: root go1.25 success
+            runner_go: '1.26.1'
+            layout: root
+            project_go: '1.25.0'
+            go_module_dir: ''
+            expect_action_failure: false
+            run_go_tests: true
+            test_workdir: .
+            expected_dd_trace_go_version: v2.7.0
+          - case_id: root_go_122_skip
+            name: root go1.22 skip
+            runner_go: '1.26.1'
+            layout: root
+            project_go: '1.22.0'
+            go_module_dir: ''
+            expect_action_failure: false
+            run_go_tests: false
+            test_workdir: .
+            expected_dd_trace_go_version: ''
+          - case_id: runner_below_min_skip
+            name: runner below minimum partial failure
+            runner_go: '1.23.12'
+            layout: root
+            project_go: '1.24.0'
+            go_module_dir: ''
+            expect_action_failure: true
+            run_go_tests: false
+            test_workdir: .
+            expected_dd_trace_go_version: ''
+          - case_id: single_nested_go_124_auto
+            name: single nested go1.24 auto-detect
+            runner_go: '1.26.1'
+            layout: single_nested
+            project_go: '1.24.0'
+            go_module_dir: ''
+            expect_action_failure: false
+            run_go_tests: true
+            test_workdir: services/payments
+            expected_dd_trace_go_version: v2.6.0
+          - case_id: single_nested_go_125_auto
+            name: single nested go1.25 auto-detect
+            runner_go: '1.26.1'
+            layout: single_nested
+            project_go: '1.25.0'
+            go_module_dir: ''
+            expect_action_failure: false
+            run_go_tests: true
+            test_workdir: services/payments
+            expected_dd_trace_go_version: v2.7.0
+          - case_id: multiple_modules_without_override_skip
+            name: multiple modules without override skip
+            runner_go: '1.26.1'
+            layout: multiple_modules
+            project_go: '1.24.0'
+            second_project_go: '1.25.0'
+            go_module_dir: ''
+            expect_action_failure: false
+            run_go_tests: false
+            test_workdir: .
+            expected_dd_trace_go_version: ''
+          - case_id: multiple_modules_with_override_success
+            name: multiple modules with override success
+            runner_go: '1.26.1'
+            layout: multiple_modules
+            project_go: '1.25.0'
+            second_project_go: '1.24.0'
+            go_module_dir: ./services/payments
+            expect_action_failure: false
+            run_go_tests: true
+            test_workdir: services/payments
+            expected_dd_trace_go_version: v2.7.0
+          - case_id: missing_directory_fail
+            name: missing override directory failure
+            runner_go: '1.26.1'
+            layout: root
+            project_go: '1.24.0'
+            go_module_dir: ./services/does-not-exist
+            expect_action_failure: true
+            run_go_tests: false
+            test_workdir: .
+            expected_dd_trace_go_version: ''
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.runner_go }}
+          cache: false
+
+      - name: Create Go Scenario
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          create_module() {
+            local module_dir="$1"
+            local module_name="$2"
+            local go_version="$3"
+            local package_name="$4"
+
+            mkdir -p "$module_dir"
+
+            cat > "$module_dir/go.mod" <<EOF
+          module $module_name
+
+          go $go_version
+          EOF
+
+            cat > "$module_dir/smoke_test.go" <<EOF
+          package $package_name
+
+          import "testing"
+
+          func TestSmoke(t *testing.T) {}
+          EOF
+          }
+
+          case "${{ matrix.layout }}" in
+            root)
+              create_module "." "example.com/test-visibility-action-smoke" "${{ matrix.project_go }}" "smoke"
+              ;;
+            single_nested)
+              create_module "services/payments" "example.com/test-visibility-action-smoke/payments" "${{ matrix.project_go }}" "payments"
+              ;;
+            multiple_modules)
+              create_module "services/payments" "example.com/test-visibility-action-smoke/payments" "${{ matrix.project_go }}" "payments"
+              create_module "services/orders" "example.com/test-visibility-action-smoke/orders" "${{ matrix.second_project_go }}" "orders"
+              ;;
+            *)
+              echo "Error: Unknown layout '${{ matrix.layout }}'."
+              exit 1
+              ;;
+          esac
+
+          mkdir -p .before
+          while IFS= read -r go_mod_path; do
+            snapshot_path=".before/${go_mod_path#./}.snapshot"
+            mkdir -p "$(dirname "$snapshot_path")"
+            cp "$go_mod_path" "$snapshot_path"
+          done < <(find . -path './.git' -prune -o -name go.mod -print | sort)
+
+      - name: Run Instrumentation Action
+        id: run-action
+        continue-on-error: ${{ matrix.expect_action_failure }}
+        uses: ./
+        with:
+          languages: go
+          api_key: "dummy"
+          go-tracer-version: v1.8.0
+          go-module-dir: ${{ matrix.go_module_dir }}
+          cache: false
+
+      - name: Assert Go Scenario
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          action_outcome="${{ steps.run-action.outcome }}"
+
+          assert_file_unchanged() {
+            local path="$1"
+            local snapshot_path=".before/${path#./}.snapshot"
+
+            if ! cmp -s "$snapshot_path" "$path"; then
+              echo "Error: Expected $path to remain unchanged."
+              diff -u "$snapshot_path" "$path" || true
+              exit 1
+            fi
+          }
+
+          assert_file_absent() {
+            local path="$1"
+
+            if [ -e "$path" ]; then
+              echo "Error: Expected $path to be absent."
+              exit 1
+            fi
+          }
+
+          assert_instrumented_module() {
+            local module_dir="$1"
+            local go_ceiling="$2"
+            local selected_trace_version
+            local selected_trace_go_version
+
+            [ -n "${GOFLAGS:-}" ] || { echo "Error: GOFLAGS was not set."; exit 1; }
+            [ -n "${DD_TRACER_VERSION_GO:-}" ] || { echo "Error: DD_TRACER_VERSION_GO was not set."; exit 1; }
+            [ "$DD_TRACER_VERSION_GO" = "v1.8.0" ] || { echo "Error: Expected DD_TRACER_VERSION_GO to be v1.8.0, got '$DD_TRACER_VERSION_GO'."; exit 1; }
+            echo "$GOFLAGS" | grep -q "orchestrion toolexec" || { echo "Error: GOFLAGS does not include orchestrion."; exit 1; }
+            grep -Fq "github.com/DataDog/orchestrion v1.8.0" "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not pin orchestrion to v1.8.0."; exit 1; }
+            grep -Fq "github.com/DataDog/dd-trace-go/orchestrion/all/v2 " "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not pin orchestrion/all/v2."; exit 1; }
+            grep -Fq "github.com/DataDog/dd-trace-go/v2 " "$module_dir/go.mod" || { echo "Error: $module_dir/go.mod does not reference dd-trace-go/v2."; exit 1; }
+            [ -f "$module_dir/orchestrion.tool.go" ] || { echo "Error: Expected $module_dir/orchestrion.tool.go to exist."; exit 1; }
+
+            read -r selected_trace_version selected_trace_go_version < <(
+              env -u GOFLAGS bash -lc "cd \"$module_dir\" && go list -m -f '{{.Version}} {{.GoVersion}}' github.com/DataDog/dd-trace-go/orchestrion/all/v2"
+            )
+
+            [ -n "$selected_trace_version" ] || { echo "Error: Could not read the selected dd-trace-go version."; exit 1; }
+            [ -n "$selected_trace_go_version" ] || { echo "Error: Could not read the selected dd-trace-go Go version."; exit 1; }
+
+            if [ "$(printf '%s\n%s\n' "$selected_trace_go_version" "$go_ceiling" | sort -V | head -n 1)" != "$selected_trace_go_version" ]; then
+              echo "Error: Selected dd-trace-go Go version $selected_trace_go_version exceeds the project ceiling $go_ceiling."
+              exit 1
+            fi
+          }
+
+          assert_skipped_module() {
+            local module_dir="$1"
+
+            [ -z "${GOFLAGS:-}" ] || { echo "Error: Expected GOFLAGS to be unset."; exit 1; }
+            [ -z "${DD_TRACER_VERSION_GO:-}" ] || { echo "Error: Expected DD_TRACER_VERSION_GO to be unset."; exit 1; }
+            assert_file_unchanged "$module_dir/go.mod"
+            assert_file_absent "$module_dir/orchestrion.tool.go"
+          }
+
+          case "${{ matrix.case_id }}" in
+            root_go_124_success)
+              [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to succeed."; exit 1; }
+              assert_instrumented_module "." "1.24.0"
+              ;;
+            root_go_125_success)
+              [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to succeed."; exit 1; }
+              assert_instrumented_module "." "1.25.0"
+              ;;
+            root_go_122_skip)
+              [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to skip cleanly."; exit 1; }
+              assert_skipped_module "."
+              ;;
+            runner_below_min_skip)
+              [ "$action_outcome" = "failure" ] || { echo "Error: Expected the action to fail."; exit 1; }
+              [ -z "${GOFLAGS:-}" ] || { echo "Error: Expected GOFLAGS to be unset after the failure."; exit 1; }
+              [ -z "${DD_TRACER_VERSION_GO:-}" ] || { echo "Error: Expected DD_TRACER_VERSION_GO to be unset after the failure."; exit 1; }
+              grep -Fq "github.com/DataDog/dd-trace-go/v2 " "./go.mod" || { echo "Error: Expected the failed run to leave a dd-trace-go/v2 dependency behind."; exit 1; }
+              [ -f "./orchestrion.tool.go" ] || { echo "Error: Expected the failed run to leave orchestrion.tool.go behind."; exit 1; }
+              ;;
+            single_nested_go_124_auto)
+              [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to succeed."; exit 1; }
+              assert_instrumented_module "services/payments" "1.24.0"
+              ;;
+            single_nested_go_125_auto)
+              [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to succeed."; exit 1; }
+              assert_instrumented_module "services/payments" "1.25.0"
+              ;;
+            multiple_modules_without_override_skip)
+              [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to skip cleanly."; exit 1; }
+              assert_skipped_module "services/payments"
+              assert_skipped_module "services/orders"
+              ;;
+            multiple_modules_with_override_success)
+              [ "$action_outcome" = "success" ] || { echo "Error: Expected the action to succeed."; exit 1; }
+              assert_instrumented_module "services/payments" "1.25.0"
+              assert_file_unchanged "services/orders/go.mod"
+              assert_file_absent "services/orders/orchestrion.tool.go"
+              ;;
+            missing_directory_fail)
+              [ "$action_outcome" = "failure" ] || { echo "Error: Expected the action to fail."; exit 1; }
+              [ -z "${GOFLAGS:-}" ] || { echo "Error: Expected GOFLAGS to be unset after the failure."; exit 1; }
+              [ -z "${DD_TRACER_VERSION_GO:-}" ] || { echo "Error: Expected DD_TRACER_VERSION_GO to be unset after the failure."; exit 1; }
+              assert_file_unchanged "./go.mod"
+              assert_file_absent "./orchestrion.tool.go"
+              ;;
+            *)
+              echo "Error: Unknown case '${{ matrix.case_id }}'."
+              exit 1
+              ;;
+          esac
+
+      - name: Run Go Tests
+        if: ${{ matrix.run_go_tests }}
+        working-directory: ${{ matrix.test_workdir }}
+        run: go test -v ./...
+        env:
+          DD_TRACE_DEBUG: "true"
