@@ -83,7 +83,9 @@ jobs:
           echo "$GOFLAGS" | grep -q "orchestrion toolexec" || { echo "Error: GOFLAGS does not include orchestrion."; exit 1; }
 
       - name: Run Go Tests
-        run: go test ./...
+        run: go test -v ./...
+        env:
+          DD_TRACE_DEBUG: "true"
 
   test-go-action-module-dir:
     name: Go Module Dir Smoke Test
@@ -133,4 +135,6 @@ jobs:
 
       - name: Run Go Tests
         working-directory: services/payments
-        run: go test ./...
+        run: go test -v ./...
+        env:
+          DD_TRACE_DEBUG: "true"
