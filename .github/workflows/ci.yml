@@ -51,6 +51,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.26.1'
+          cache: false
 
       - name: Create Go Test Project
         run: |
@@ -96,6 +97,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.26.1'
+          cache: false
 
       - name: Create Nested Go Test Project
         run: |
