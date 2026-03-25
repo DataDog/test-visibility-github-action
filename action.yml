@@ -35,6 +35,9 @@ inputs:
   go-tracer-version:
     description: 'The version of Orchestrion automatic compile-time instrumentation of Go code (https://github.com/datadog/orchestrion) to use (optional). Defaults to the latest release.'
     required: false
+  go-module-dir:
+    description: 'Path to the Go module root directory to instrument (optional). Use this when the repository contains multiple Go modules or the Go module is not in the workspace root.'
+    required: false
   java-instrumented-build-system:
     description: 'If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented.'
     required: false
@@ -69,8 +72,8 @@ runs:
         echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
       shell: bash
       env:
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v11.sh
-        INSTALLATION_SCRIPT_CHECKSUM: fc64c45fd4b45b4b01773c58a3a116bef212dc4095508a6e27e19e50e901bd55
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v12.sh
+        INSTALLATION_SCRIPT_CHECKSUM: 91b6c7bb2c28ef5604c2a2b233da7d931a9b3b5d20b7872254ebb0e689e62f4a
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Get Go cache directories
@@ -151,6 +154,7 @@ runs:
         DD_SET_TRACER_VERSION_PYTHON: ${{ inputs.python-tracer-version }}
         DD_SET_TRACER_VERSION_RUBY: ${{ inputs.ruby-tracer-version }}
         DD_SET_TRACER_VERSION_GO: ${{ inputs.go-tracer-version }}
+        DD_CIVISIBILITY_GO_MODULE_DIR: ${{ inputs.go-module-dir }}
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
 
     - name: Propagate optional site input to environment variable
@@ -203,4 +207,3 @@ runs:
           rm -f $GITHUB_STEP_SUMMARY
         fi
       shell: bash
-

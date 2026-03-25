@@ -47,6 +47,7 @@ The action has the following parameters:
 | python-tracer-version          | The version of Datadog Python tracer to use. Defaults to the latest release.                                                                                                                                                                                                                        | false    |               |
 | ruby-tracer-version            | The version of datadog-ci Ruby gem to use. Defaults to the latest release.                                                                                                                                                                                                                          | false    |               |
 | go-tracer-version              | The version of Orchestrion to use. Defaults to the latest release.                                                                                                                                                                                                                                  | false    |               |
+| go-module-dir                  | Path to the Go module root directory to instrument. Use this when the repository contains multiple Go modules or the Go module is not in the workspace root.                                                                                                                                       | false    |               |
 | java-instrumented-build-system | If provided, only the specified build systems will be instrumented (allowed values are `gradle`,`maven`,`sbt`,`ant`,`all`). `all` is a special value that instruments every Java process. If this property is not provided, all known build systems will be instrumented (Gradle, Maven, SBT, Ant). | false    |               |
 | cache                          | Enable caching of downloaded tracers.                                                                                                                                                                                                                                                               | false    | true          |
 | print-github-step-summary      | Print a summary of the installed tracers to the GitHub step summary. If set to false, the summary is printed to console instead.                                                                                                                                                                    | false    | true          |
@@ -62,6 +63,19 @@ Any [additional configuration values](https://docs.datadoghq.com/tracing/trace_c
   env:
     DD_ENV: staging-tests
     DD_TAGS: layer:api,team:intake,key:value
+```
+
+### Go multi-module repositories
+
+If your repository contains multiple Go modules, or the Go module you want to instrument is not at the workspace root, set `go-module-dir` to the module root directory that contains the target `go.mod` file:
+
+```yaml
+- name: Configure Datadog Test Optimization
+  uses: datadog/test-visibility-github-action@v2
+  with:
+    languages: go
+    api_key: ${{ secrets.DD_API_KEY }}
+    go-module-dir: ./services/payments
 ```
 
 ## Limitations
