@@ -29,6 +29,9 @@ inputs:
   python-tracer-version:
     description: 'The version of Datadog Python tracer to use (optional). Defaults to the latest release.'
     required: false
+  python-coverage-version:
+    description: 'The version of the Python coverage package to use (optional). Defaults to 7.13.5.'
+    required: false
   ruby-tracer-version:
     description: 'The version of datadog-ci Ruby gem to use (optional). Defaults to the latest release.'
     required: false
@@ -72,8 +75,8 @@ runs:
         echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
       shell: bash
       env:
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v12.sh
-        INSTALLATION_SCRIPT_CHECKSUM: 91b6c7bb2c28ef5604c2a2b233da7d931a9b3b5d20b7872254ebb0e689e62f4a
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v13.sh
+        INSTALLATION_SCRIPT_CHECKSUM: 1271425bc94d25ff771111802f1b010104f3a9245bd491b67f1be561529f6b89
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Get Go cache directories
@@ -152,6 +155,7 @@ runs:
         DD_SET_TRACER_VERSION_JAVA: ${{ inputs.java-tracer-version }}
         DD_SET_TRACER_VERSION_JS: ${{ inputs.js-tracer-version }}
         DD_SET_TRACER_VERSION_PYTHON: ${{ inputs.python-tracer-version }}
+        DD_SET_COVERAGE_VERSION_PYTHON: ${{ inputs.python-coverage-version }}
         DD_SET_TRACER_VERSION_RUBY: ${{ inputs.ruby-tracer-version }}
         DD_SET_TRACER_VERSION_GO: ${{ inputs.go-tracer-version }}
         DD_CIVISIBILITY_GO_MODULE_DIR: ${{ inputs.go-module-dir }}
