@@ -44,6 +44,12 @@ inputs:
   java-instrumented-build-system:
     description: 'If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented.'
     required: false
+  java-tracer-repository-url:
+    description: 'Base URL of a Maven repository (or proxy/mirror, e.g. JFrog Artifactory) to download the Java tracer JAR and its sha256 from. The path under the base must follow the standard Maven layout for `com.datadoghq:dd-java-agent`. Defaults to Maven Central.'
+    required: false
+  java-tracer-repository-auth-header:
+    description: 'Optional HTTP header used to authenticate against `java-tracer-repository-url`, provided as a complete `Name: Value` string (e.g. `Authorization: Bearer <token>`). Only used when `java-tracer-repository-url` is set.'
+    required: false
   cache:
     description: 'Enable caching (optional). Defaults to true.'
     required: false
@@ -75,8 +81,8 @@ runs:
         echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
       shell: bash
       env:
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v13.sh
-        INSTALLATION_SCRIPT_CHECKSUM: 1271425bc94d25ff771111802f1b010104f3a9245bd491b67f1be561529f6b89
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v14.sh
+        INSTALLATION_SCRIPT_CHECKSUM: 1271425bc94d25ff771111802f1b010104f3a9245bd491b67f1be561529f6b89 # TODO: update for v14
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Get Go cache directories
@@ -160,6 +166,8 @@ runs:
         DD_SET_TRACER_VERSION_GO: ${{ inputs.go-tracer-version }}
         DD_CIVISIBILITY_GO_MODULE_DIR: ${{ inputs.go-module-dir }}
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
+        DD_SET_TRACER_REPOSITORY_URL_JAVA: ${{ inputs.java-tracer-repository-url }}
+        DD_SET_AUTH_HEADER_JAVA: ${{ inputs.java-tracer-repository-auth-header }}
 
     - name: Propagate optional site input to environment variable
       if: "${{ inputs.site != '' }}"

@@ -38,8 +38,8 @@ The action has the following parameters:
 | Name                           | Description                                                                                                                                                                                                                                                                                         | Required | Default       |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------- |
 | languages                      | List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby", "go" (multiple languages can be specified as a space-separated list).                                                                                                                 | true     |               |
-| api_key                        | Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys                                                                                                                                                                                                           | true     |               |
-| site                           | Datadog site. See https://docs.datadoghq.com/getting_started/site for more information about sites.                                                                                                                                                                                                 | false    | datadoghq.com |
+| api_key                        | Datadog API key. Can be found at <https://app.datadoghq.com/organization-settings/api-keys>                                                                                                                                                                                                           | true     |               |
+| site                           | Datadog site. See <https://docs.datadoghq.com/getting_started/site> for more information about sites.                                                                                                                                                                                                 | false    | datadoghq.com |
 | service                        | The name of the service or library being tested.                                                                                                                                                                                                                                                    | false    |               |
 | dotnet-tracer-version          | The version of Datadog .NET tracer to use. Defaults to the latest release.                                                                                                                                                                                                                          | false    |               |
 | java-tracer-version            | The version of Datadog Java tracer to use. Defaults to the latest release.                                                                                                                                                                                                                          | false    |               |
@@ -50,6 +50,8 @@ The action has the following parameters:
 | go-tracer-version              | The version of Orchestrion to use. Defaults to the latest release.                                                                                                                                                                                                                                  | false    |               |
 | go-module-dir                  | Path to the Go module root directory to instrument. Use this when the repository contains multiple Go modules or the Go module is not in the workspace root.                                                                                                                                       | false    |               |
 | java-instrumented-build-system | If provided, only the specified build systems will be instrumented (allowed values are `gradle`,`maven`,`sbt`,`ant`,`all`). `all` is a special value that instruments every Java process. If this property is not provided, all known build systems will be instrumented (Gradle, Maven, SBT, Ant). | false    |               |
+| java-tracer-repository-url     | Base URL of a Maven repository (or proxy/mirror, e.g. JFrog Artifactory) used to download the Java tracer JAR and its sha256. The path under the base must follow the standard Maven layout for `com.datadoghq:dd-java-agent`. Defaults to Maven Central.                                            | false    |               |
+| java-tracer-repository-auth-header | Optional HTTP header used to authenticate against `java-tracer-repository-url`, provided as a complete `Name: Value` string (e.g. `Authorization: Bearer <token>`). Only used when `java-tracer-repository-url` is set.                                                                          | false    |               |
 | cache                          | Enable caching of downloaded tracers.                                                                                                                                                                                                                                                               | false    | true          |
 | print-github-step-summary      | Print a summary of the installed tracers to the GitHub step summary. If set to false, the summary is printed to console instead.                                                                                                                                                                    | false    | true          |
 
@@ -65,6 +67,22 @@ Any [additional configuration values](https://docs.datadoghq.com/tracing/trace_c
     DD_ENV: staging-tests
     DD_TAGS: layer:api,team:intake,key:value
 ```
+
+### Using a Maven mirror or proxy for the Java tracer
+
+By default the Java tracer JAR is fetched from Maven Central (`https://repo1.maven.org/maven2`). Organizations with their own mirror or proxy (such as JFrog Artifactory) can point the action at it to avoid Maven Central rate limits:
+
+```yaml
+- name: Configure Datadog Test Optimization
+  uses: datadog/test-visibility-github-action@v2
+  with:
+    languages: java
+    api_key: ${{ secrets.DD_API_KEY }}
+    java-tracer-repository-url: https://artifactory.example.com/maven-virtual/com/datadoghq/dd-java-agent
+    java-tracer-repository-auth-header: Authorization: Bearer ${{ secrets.ARTIFACTORY_TOKEN }}
+```
+
+The base URL must expose the standard Maven layout for `com.datadoghq:dd-java-agent` (i.e. `<base>/<version>/dd-java-agent-<version>.jar` and the matching `.sha256`, plus `<base>/maven-metadata.xml` when no `java-tracer-version` is pinned). The `.sha256` files are still verified.
 
 ### Go multi-module repositories
 
