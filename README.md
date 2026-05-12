@@ -70,7 +70,7 @@ Any [additional configuration values](https://docs.datadoghq.com/tracing/trace_c
 
 ### Using a Maven mirror or proxy for the Java tracer
 
-By default the Java tracer JAR is fetched from Maven Central (`https://repo1.maven.org/maven2`). Organizations with their own mirror or proxy (such as JFrog Artifactory) can point the action at it to avoid Maven Central rate limits:
+By default the Java tracer JAR is fetched from Maven Central (`https://repo1.maven.org/maven2`). Organizations with their own mirror or proxy can point the action at it:
 
 ```yaml
 - name: Configure Datadog Test Optimization
