@@ -82,7 +82,7 @@ runs:
       shell: bash
       env:
         INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v14.sh
-        INSTALLATION_SCRIPT_CHECKSUM: 1271425bc94d25ff771111802f1b010104f3a9245bd491b67f1be561529f6b89 # TODO: update for v14
+        INSTALLATION_SCRIPT_CHECKSUM: 73824cfac695ed17177b4a2fc0b9afb3b19b639d27a20166190bf8997248423b
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Get Go cache directories
