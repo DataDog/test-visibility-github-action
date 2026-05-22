@@ -48,7 +48,10 @@ inputs:
     description: 'Base URL of a Maven repository (or proxy/mirror) used to download the Java tracer JAR and its sha256. The path under the base must follow the standard Maven layout for `com.datadoghq:dd-java-agent`. Defaults to Maven Central.'
     required: false
   java-tracer-repository-auth-header:
-    description: 'Optional HTTP header used to authenticate against `java-tracer-repository-url`, provided as a complete `Name: Value` string (e.g. `Authorization: Bearer <token>`). Only used when `java-tracer-repository-url` is set. Redirects are not followed when this option is set.'
+    description: 'Optional HTTP header used to authenticate against `java-tracer-repository-url`, provided as a complete `Name: Value` string (e.g. `Authorization: Bearer <token>`). Only used when `java-tracer-repository-url` is set. Redirects are followed by default; be aware that the header will be re-sent on each redirect hop with the following caveats: `curl` strips `Authorization` and `Cookie` headers on cross-origin redirects (different host, port, or scheme), but `wget` does not strip any header. Custom header names (e.g. `X-API-Key`, `X-JFrog-Art-Api`) are never stripped by either tool — prefer the `Authorization: …` form when possible. Set `java-tracer-auth-disable-redirects` to opt out of redirect following entirely.'
+    required: false
+  java-tracer-auth-disable-redirects:
+    description: 'When set to any non-empty value, disables HTTP redirect following for Java tracer downloads that send `java-tracer-repository-auth-header`. Use this if your repository never redirects and you want to guarantee the auth header is only ever sent to the configured `java-tracer-repository-url` host.'
     required: false
   cache:
     description: 'Enable caching (optional). Defaults to true.'
@@ -81,8 +84,8 @@ runs:
         echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
       shell: bash
       env:
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v14.sh
-        INSTALLATION_SCRIPT_CHECKSUM: 73824cfac695ed17177b4a2fc0b9afb3b19b639d27a20166190bf8997248423b
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v15.sh
+        INSTALLATION_SCRIPT_CHECKSUM: e64a4a45e0b171f4294b9f949f7fc99946192f952a2d463c61fad3cb8b956a58
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Get Go cache directories
@@ -168,6 +171,7 @@ runs:
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
         DD_SET_TRACER_REPOSITORY_URL_JAVA: ${{ inputs.java-tracer-repository-url }}
         DD_SET_AUTH_HEADER_JAVA: ${{ inputs.java-tracer-repository-auth-header }}
+        DD_SET_AUTH_HEADER_JAVA_DISABLE_REDIRECTS: ${{ inputs.java-tracer-auth-disable-redirects }}
 
     - name: Propagate optional site input to environment variable
       if: "${{ inputs.site != '' }}"
