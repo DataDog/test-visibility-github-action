@@ -56,6 +56,26 @@ updates:
 
 Dependabot then opens pull requests when newer action releases are available, so the new SHA and any changes to the pinned library versions can be reviewed before merging. See GitHub's guidance on [keeping actions up to date with Dependabot](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/auto-update-actions) and [pinning actions securely](https://docs.github.com/en/actions/reference/security/secure-use#using-third-party-actions).
 
+### Migrate from v2 to v3
+
+The `v2` reference does not move to v3 automatically. Update the action reference in each workflow you want to migrate:
+
+```diff
+- uses: datadog/test-visibility-github-action@v2
++ uses: datadog/test-visibility-github-action@v3
+```
+
+No input names or required configuration change. The migration only changes how omitted library-version inputs are resolved:
+
+| Your workflow | Experience after migrating |
+| ------------- | -------------------------- |
+| No library-version inputs | The first v3 run uses the versions listed in the [configuration table](#configuration), which may differ from the versions resolved by the last v2 run. Defaults no longer change independently on every run. |
+| Explicit library-version inputs | Your selected versions continue to override the action defaults, so the installed library versions do not change as part of the migration. |
+
+With `@v3`, pinned defaults change only when a reviewed v3 release moves the major reference. Use an exact release tag or full commit SHA instead if the action and its defaults must remain unchanged until you explicitly update the reference.
+
+Before migrating, review the v3 defaults and run a representative test workflow. If you need to preserve a specific library version, set its version input explicitly.
+
 ## Configuration
 
 The action has the following parameters:
