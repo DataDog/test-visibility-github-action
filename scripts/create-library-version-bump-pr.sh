@@ -164,6 +164,19 @@ else
   release_label="$semver_patch_label"
 fi
 
+if [[ "$dry_run" != "true" ]]; then
+  existing_pr_url=$(gh pr list \
+    --repo "$repo" \
+    --label "$bump_label" \
+    --state open \
+    --json url \
+    --jq '.[0].url // ""')
+  if [[ -n "$existing_pr_url" ]]; then
+    echo "An open bump PR already exists: $existing_pr_url"
+    exit 0
+  fi
+fi
+
 github_user=$(gh api user --jq '.login')
 branch_name="$github_user/library-version-bump-$(date -u +%Y%m%d-%H%M%S)"
 
@@ -181,17 +194,6 @@ fi
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "Working tree must be clean before creating a bump PR." >&2
   exit 1
-fi
-
-existing_pr_url=$(gh pr list \
-  --repo "$repo" \
-  --head "$branch_name" \
-  --state open \
-  --json url \
-  --jq '.[0].url // ""')
-if [[ -n "$existing_pr_url" ]]; then
-  echo "An open bump PR already exists: $existing_pr_url"
-  exit 0
 fi
 
 if git show-ref --verify --quiet "refs/heads/$branch_name"; then
