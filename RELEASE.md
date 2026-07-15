@@ -25,6 +25,8 @@ If a release includes multiple merged PRs, the highest requested version change 
 
 ## Bump pinned library versions
 
+Use `scripts/create-library-version-bump-pr.sh` for the normal maintainer workflow. It discovers available updates and handles the complete branch, signed commit, push, and PR flow.
+
 Preview all currently available library updates:
 
 ```bash
@@ -45,7 +47,7 @@ The PR receives:
 - `semver-patch` when every update is a patch
 - `semver-minor` when at least one library changes its major or minor version
 
-To update only selected versions without opening a PR, use the lower-level helper:
+Use `scripts/bump-library-versions.sh` only as a lower-level manual tool when you already know the exact versions to apply, such as for a targeted update or when testing the file changes. It only updates `action.yml` and `README.md`; it does not query package sources, create a branch or commit, push, or open a PR.
 
 ```bash
 scripts/bump-library-versions.sh --java 1.65.0 --js 6.3.1
