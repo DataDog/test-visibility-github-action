@@ -41,6 +41,8 @@ Starting with v3, each action release pins its default library versions instead 
 | Exact release tag | `datadog/test-visibility-github-action@v3.0.0` | Uses a readable, known action release and its pinned library versions. Release notes make changes easy to review before upgrading. | Does not receive bug fixes or library bumps automatically. Tags can technically be moved, so this is not as strong an immutability guarantee as a full commit SHA. |
 | Full commit SHA | `datadog/test-visibility-github-action@<full-commit-sha> # v3.0.0` | Strongest reproducibility and supply-chain protection: every run uses the exact same action code and pinned library versions. | Does not receive fixes or new releases automatically. Replace the placeholder with the full SHA for the release you reviewed and use an update mechanism such as Dependabot. |
 
+These references select the action code and its default library snapshot. To keep an individual library on a specific version independently of the action reference, [set its version input explicitly](#pin-an-individual-library-version).
+
 For most workflows, `@v3` provides the simplest way to receive compatible updates. For workflows that require an immutable action, use the full commit SHA associated with a v3 release. Keeping the release tag as an inline comment lets readers identify the version and allows Dependabot to update the comment with the SHA.
 
 To have Dependabot propose updates for an action pinned to a SHA, add the following to `.github/dependabot.yml` in the repository that uses the action:
@@ -101,9 +103,20 @@ The action has the following parameters:
 | cache                          | Enable caching of downloaded tracers.                                                                                                                                                                                                                                                               | false    | true          |
 | print-github-step-summary      | Print a summary of the installed tracers to the GitHub step summary. If set to false, the summary is printed to console instead.                                                                                                                                                                    | false    | true          |
 
-### Library version defaults
+### Pin an individual library version
 
-Set a language's version input explicitly to override the default selected by the action release.
+Set a library's version input to override the default selected by the action release. The explicit version remains in effect when the action reference moves or is updated:
+
+```yaml
+- name: Configure Datadog Test Optimization
+  uses: datadog/test-visibility-github-action@v3
+  with:
+    languages: java
+    api_key: ${{ secrets.DD_API_KEY }}
+    java-tracer-version: 1.64.0
+```
+
+This lets you receive action updates while holding a particular library at a version you have validated. That library will not receive automatic bumps, so update the input explicitly when you want a newer version. The same behavior applies to every library-version input in the table above.
 
 Maintainers can use the local scripts described in [RELEASE.md](RELEASE.md) to create a batched library bump PR and publish the resulting action release.
 
