@@ -11,7 +11,7 @@ immutable tag. It atomically pushes that tag and the moving major branch; the
 existing release workflow then creates the GitHub Release.
 
 Options:
-  --tag TAG       Immutable action tag to create, e.g. v2.11.0
+  --tag TAG       Immutable action tag to create, e.g. v3.0.0
   --sha COMMIT    Commit to release; defaults to origin/main after fetch
   --dry-run       Print the release without creating or pushing refs
   --allow-version-mismatch
@@ -62,7 +62,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -n "$requested_tag" && ! "$requested_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Expected --tag to be an immutable action tag like v2.11.0, got '$requested_tag'" >&2
+  echo "Expected --tag to be an immutable action tag like v3.0.0, got '$requested_tag'" >&2
   exit 1
 fi
 
@@ -89,6 +89,7 @@ base_branch="main"
 remote="origin"
 repo="DataDog/test-visibility-github-action"
 pr_limit=200
+major_label="semver-major"
 minor_label="semver-minor"
 patch_label="semver-patch"
 
@@ -179,6 +180,9 @@ next_tag_for_bump_kind() {
   read -r latest_major latest_minor latest_patch <<< "$(semver_parts "$latest_tag")"
 
   case "$bump_kind" in
+    major)
+      echo "v$((latest_major + 1)).0.0"
+      ;;
     minor)
       echo "v${latest_major}.$((latest_minor + 1)).0"
       ;;
@@ -186,7 +190,7 @@ next_tag_for_bump_kind() {
       echo "v${latest_major}.${latest_minor}.$((latest_patch + 1))"
       ;;
     *)
-      echo "Automatic releases support '$minor_label' and '$patch_label'. Use --tag for other release types." >&2
+      echo "Automatic releases support '$major_label', '$minor_label', and '$patch_label'." >&2
       return 1
       ;;
   esac
@@ -212,8 +216,13 @@ while IFS=$'\t' read -r pr_number merge_sha labels_csv; do
   IFS=, read -ra labels <<< "$labels_csv"
   for label in "${labels[@]}"; do
     case "$label" in
+      "$major_label")
+        pr_bump_kind="major"
+        ;;
       "$minor_label")
-        pr_bump_kind="minor"
+        if [[ "$pr_bump_kind" != "major" ]]; then
+          pr_bump_kind="minor"
+        fi
         ;;
       "$patch_label")
         if [[ -z "$pr_bump_kind" ]]; then
@@ -242,7 +251,7 @@ done < <(
 )
 
 if [[ -z "$release_bump_kind" && -z "$requested_tag" ]]; then
-  echo "No unreleased merged PRs with '$minor_label' or '$patch_label' found between $latest_tag and $target_sha."
+  echo "No unreleased merged PRs with '$major_label', '$minor_label', or '$patch_label' found between $latest_tag and $target_sha."
   exit 0
 fi
 

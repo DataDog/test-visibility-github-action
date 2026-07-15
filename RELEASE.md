@@ -1,6 +1,6 @@
 # Release Process
 
-This repository ships a composite GitHub Action. Releases use immutable semantic-version tags such as `v2.11.0` and a moving major branch such as `v2`.
+This repository ships a composite GitHub Action. Releases use immutable semantic-version tags such as `v3.0.0` and a moving major branch such as `v3`.
 
 ## Requirements
 
@@ -19,8 +19,9 @@ Every PR intended for a release must have one of these labels:
 
 - `semver-patch`: requests the next patch release
 - `semver-minor`: requests the next minor release
+- `semver-major`: requests the next major release
 
-If a release includes multiple merged PRs, `semver-minor` wins. Major releases are explicit: pass `--tag vX.0.0` to the release script.
+If a release includes multiple merged PRs, the highest requested version change wins. A major release can also be selected explicitly by passing `--tag vX.0.0` to the release script.
 
 ## Bump pinned library versions
 
@@ -61,7 +62,7 @@ Preview the next release first:
 scripts/release-action.sh --dry-run
 ```
 
-The script fetches `main` and tags, finds merged PRs since the latest immutable action tag, reads their `semver-patch` and `semver-minor` labels, and chooses the next action tag. It verifies the release commit's signature, then atomically pushes the immutable tag and moving major branch. The existing release workflow creates the GitHub Release with generated notes.
+The script fetches `main` and tags, finds merged PRs since the latest immutable action tag, reads their `semver-patch`, `semver-minor`, and `semver-major` labels, and chooses the next action tag. It verifies the release commit's signature, then atomically pushes the immutable tag and moving major branch. The existing release workflow creates the GitHub Release with generated notes.
 
 Publish the inferred release:
 
@@ -79,12 +80,12 @@ scripts/release-action.sh --sha abc1234
 Choose the tag manually:
 
 ```bash
-scripts/release-action.sh --tag v2.11.0 --dry-run
-scripts/release-action.sh --tag v2.11.0
+scripts/release-action.sh --tag v3.0.0 --dry-run
+scripts/release-action.sh --tag v3.0.0
 ```
 
 If the requested tag is lower than the merged PR labels imply, the script fails. To publish that tag intentionally:
 
 ```bash
-scripts/release-action.sh --tag v2.10.1 --allow-version-mismatch
+scripts/release-action.sh --tag v3.0.1 --allow-version-mismatch
 ```

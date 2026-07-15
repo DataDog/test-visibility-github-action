@@ -16,7 +16,7 @@ It can help you investigate and mitigate performance problems and test failures 
    ```yaml
    steps:
      - name: Configure Datadog Test Optimization
-       uses: datadog/test-visibility-github-action@v2
+       uses: datadog/test-visibility-github-action@v3
        with:
          languages: java
          api_key: ${{ secrets.DD_API_KEY }}
@@ -30,6 +30,31 @@ It can help you investigate and mitigate performance problems and test failures 
 > It is best if the new step comes **right before** the step that runs your tests.
 > Otherwise, installed tracing libraries might be removed by the steps that precede tests execution
 > (for example, `actions/checkout` will wipe out whatever was installed in the action workspace).
+
+### Choose an action version
+
+Starting with v3, each action release pins its default library versions instead of resolving `latest` at runtime. The action reference after `@` determines whether your workflow receives newer action releases and their pinned library versions:
+
+| Reference | Example | Advantages | Disadvantages |
+| --------- | ------- | ---------- | ------------- |
+| Moving major | `datadog/test-visibility-github-action@v3` | Automatically receives reviewed bug fixes and library bumps released within v3. It will not move to v4. | The action code and default library versions can change between workflow runs. |
+| Exact release tag | `datadog/test-visibility-github-action@v3.0.0` | Uses a readable, known action release and its pinned library versions. Release notes make changes easy to review before upgrading. | Does not receive bug fixes or library bumps automatically. Tags can technically be moved, so this is not as strong an immutability guarantee as a full commit SHA. |
+| Full commit SHA | `datadog/test-visibility-github-action@<full-commit-sha> # v3.0.0` | Strongest reproducibility and supply-chain protection: every run uses the exact same action code and pinned library versions. | Does not receive fixes or new releases automatically. Replace the placeholder with the full SHA for the release you reviewed and use an update mechanism such as Dependabot. |
+
+For most workflows, `@v3` provides the simplest way to receive compatible updates. For workflows that require an immutable action, use the full commit SHA associated with a v3 release. Keeping the release tag as an inline comment lets readers identify the version and allows Dependabot to update the comment with the SHA.
+
+To have Dependabot propose updates for an action pinned to a SHA, add the following to `.github/dependabot.yml` in the repository that uses the action:
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+```
+
+Dependabot then opens pull requests when newer action releases are available, so the new SHA and any changes to the pinned library versions can be reviewed before merging. See GitHub's guidance on [keeping actions up to date with Dependabot](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/auto-update-actions) and [pinning actions securely](https://docs.github.com/en/actions/reference/security/secure-use#using-third-party-actions).
 
 ## Configuration
 
@@ -56,9 +81,7 @@ The action has the following parameters:
 | cache                          | Enable caching of downloaded tracers.                                                                                                                                                                                                                                                               | false    | true          |
 | print-github-step-summary      | Print a summary of the installed tracers to the GitHub step summary. If set to false, the summary is printed to console instead.                                                                                                                                                                    | false    | true          |
 
-### Dependency updates
-
-A given action release pins its default library versions so that it installs the same versions on every run. Compatible library updates are reviewed and batched into action releases. Release notes identify which languages changed so users pinned to a specific action release can decide whether an update affects them.
+### Library version defaults
 
 Set a language's version input explicitly to override the default selected by the action release.
 
@@ -83,7 +106,7 @@ By default the Java tracer JAR is fetched from Maven Central (`https://repo1.mav
 
 ```yaml
 - name: Configure Datadog Test Optimization
-  uses: datadog/test-visibility-github-action@v2
+  uses: datadog/test-visibility-github-action@v3
   with:
     languages: java
     api_key: ${{ secrets.DD_API_KEY }}
@@ -99,7 +122,7 @@ If your repository contains multiple Go modules, or the Go module you want to in
 
 ```yaml
 - name: Configure Datadog Test Optimization
-  uses: datadog/test-visibility-github-action@v2
+  uses: datadog/test-visibility-github-action@v3
   with:
     languages: go
     api_key: ${{ secrets.DD_API_KEY }}
