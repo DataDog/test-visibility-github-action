@@ -36,7 +36,7 @@ inputs:
   python-coverage-version:
     description: 'The version of the Python coverage package to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '7.13.5'
+    default: '7.15.1'
   ruby-tracer-version:
     description: 'The version of datadog-ci Ruby gem to use (optional). Defaults to the version pinned by this action release.'
     required: false

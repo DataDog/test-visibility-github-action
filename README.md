@@ -45,7 +45,7 @@ The action has the following parameters:
 | java-tracer-version            | The version of Datadog Java tracer to use.                                                                                                                                                                                                                                                         | false    | 1.64.0        |
 | js-tracer-version              | The version of Datadog JS tracer to use.                                                                                                                                                                                                                                                           | false    | 6.3.0         |
 | python-tracer-version          | The version of Datadog Python tracer to use.                                                                                                                                                                                                                                                       | false    | 4.11.0        |
-| python-coverage-version        | The version of the Python `coverage` package to use.                                                                                                                                                                                                                                               | false    | 7.13.5        |
+| python-coverage-version        | The version of the Python `coverage` package to use.                                                                                                                                                                                                                                               | false    | 7.15.1        |
 | ruby-tracer-version            | The version of datadog-ci Ruby gem to use.                                                                                                                                                                                                                                                         | false    | 1.34.0        |
 | go-tracer-version              | The version of Orchestrion to use.                                                                                                                                                                                                                                                                 | false    | v1.11.0       |
 | go-module-dir                  | Path to the Go module root directory to instrument. Use this when the repository contains multiple Go modules or the Go module is not in the workspace root.                                                                                                                                       | false    |               |
@@ -61,6 +61,8 @@ The action has the following parameters:
 A given action release pins its default library versions so that it installs the same versions on every run. Compatible library updates are reviewed and batched into action releases. Release notes identify which languages changed so users pinned to a specific action release can decide whether an update affects them.
 
 Set a language's version input explicitly to override the default selected by the action release.
+
+Maintainers can use the local scripts described in [RELEASE.md](RELEASE.md) to create a batched library bump PR and publish the resulting action release.
 
 ### Additional configuration
 
