@@ -64,7 +64,7 @@ Preview the next release first:
 scripts/release-action.sh --dry-run
 ```
 
-The script fetches `main` and tags, finds merged PRs since the latest immutable action tag, reads their `semver-patch`, `semver-minor`, and `semver-major` labels, and chooses the next action tag. It verifies the release commit's signature, then atomically pushes the immutable tag and moving major branch. The existing release workflow creates the GitHub Release with generated notes.
+The script fetches `main` and tags, finds merged PRs since the latest immutable action tag, reads their `semver-patch`, `semver-minor`, and `semver-major` labels, and chooses the next action tag. It requires GitHub to report the release commit's signature as verified, then atomically pushes the immutable tag and moving major branch. The existing release workflow creates the GitHub Release with generated notes.
 
 Publish the inferred release:
 

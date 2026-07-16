@@ -131,8 +131,9 @@ if ! git merge-base --is-ancestor "$latest_tag" "$target_sha"; then
   exit 1
 fi
 
-if ! git verify-commit "$target_sha"; then
-  echo "Release commit '$target_sha' does not have a valid signature." >&2
+commit_verified=$(gh api "repos/$repo/commits/$target_sha" --jq '.commit.verification.verified')
+if [[ "$commit_verified" != "true" ]]; then
+  echo "Release commit '$target_sha' does not have a signature verified by GitHub." >&2
   exit 1
 fi
 
