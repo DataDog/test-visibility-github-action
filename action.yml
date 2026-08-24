@@ -20,31 +20,31 @@ inputs:
   dotnet-tracer-version:
     description: 'The version of Datadog .NET tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '3.49.0'
+    default: '3.50.0'
   java-tracer-version:
     description: 'The version of Datadog Java tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '1.64.0'
+    default: '1.65.1'
   js-tracer-version:
     description: 'The version of Datadog JS tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '6.3.0'
+    default: '6.12.0'
   python-tracer-version:
     description: 'The version of Datadog Python tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '4.11.0'
+    default: '4.13.1'
   python-coverage-version:
     description: 'The version of the Python coverage package to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '7.15.1'
+    default: '7.15.4'
   ruby-tracer-version:
     description: 'The version of datadog-ci Ruby gem to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '1.34.0'
+    default: '1.37.0'
   go-tracer-version:
     description: 'The version of Orchestrion automatic compile-time instrumentation of Go code (https://github.com/datadog/orchestrion) to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: 'v1.11.0'
+    default: 'v1.12.2'
   go-module-dir:
     description: 'Path to the Go module root directory to instrument (optional). Use this when the repository contains multiple Go modules or the Go module is not in the workspace root.'
     required: false
