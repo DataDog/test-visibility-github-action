@@ -1,0 +1,113 @@
+name: Python Action Matrix
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  defaults:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - run: tests/test-python-defaults.sh
+
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python: '3.9'
+            coverage: ''
+            failure: false
+          - python: '3.10'
+            coverage: ''
+            failure: false
+          - python: '3.11'
+            coverage: ''
+            failure: false
+          - python: '3.12'
+            coverage: ''
+            failure: false
+          - python: '3.13'
+            coverage: ''
+            failure: false
+          - python: '3.14'
+            coverage: ''
+            failure: false
+          - python: '3.9'
+            coverage: '7.10.6'
+            failure: false
+          - python: '3.9'
+            coverage: '7.16.1'
+            failure: true
+    env:
+      DD_CIVISIBILITY_AGENTLESS_URL: http://127.0.0.1:9
+      DD_CIVISIBILITY_ITR_ENABLED: 'false'
+      DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+      DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install test runner
+        run: python -m pip install pytest==8.4.2
+      - name: Configure Test Optimization
+        id: action
+        continue-on-error: ${{ matrix.failure }}
+        uses: ./
+        with:
+          languages: python
+          api_key: dummy
+          python-coverage-version: ${{ matrix.coverage }}
+      - name: Assert incompatible override fails without enabling instrumentation
+        if: ${{ matrix.failure }}
+        env:
+          ACTION_OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          test "$ACTION_OUTCOME" = failure
+          test -z "${DD_CIVISIBILITY_ENABLED:-}"
+          test -z "${DD_TRACER_VERSION_PYTHON:-}"
+          test -z "${DD_COVERAGE_VERSION_PYTHON:-}"
+          test -z "${PYTEST_ADDOPTS:-}"
+      - name: Verify selected packages and run instrumented tests with coverage
+        if: ${{ !matrix.failure }}
+        env:
+          COVERAGE_OVERRIDE: ${{ matrix.coverage }}
+        run: |
+          ruby -ryaml -rjson -e 'puts JSON.generate(YAML.load_file("action.yml"))' > action.json
+          python - <<'PY'
+          import json, os, sys
+          from importlib.metadata import version
+          action = json.load(open('action.json'))
+          step = next(s for s in action['runs']['steps'] if s.get('id') == 'run-configuration-script')
+          default = '7.10.7' if sys.version_info[:2] == (3, 9) else step['env']['DD_DEFAULT_COVERAGE_VERSION_PYTHON']
+          expected = os.environ['COVERAGE_OVERRIDE'] or default
+          assert version('coverage') == expected == os.environ['DD_COVERAGE_VERSION_PYTHON']
+          assert version('ddtrace') == action['inputs']['python-tracer-version']['default']
+          assert os.environ['DD_CIVISIBILITY_ENABLED'] == 'true'
+          PY
+          cat > example.py <<'PY'
+          def classify(value):
+              if value > 0:
+                  return 'positive'
+              return 'nonpositive'
+          PY
+          cat > test_example.py <<'PY'
+          from example import classify
+          from ddtrace.testing.internal.pytest.plugin import TestOptPlugin
+          def test_positive(pytestconfig):
+              assert any(isinstance(p, TestOptPlugin) for p in pytestconfig.pluginmanager.get_plugins())
+              assert classify(1) == 'positive'
+          def test_nonpositive():
+              assert classify(0) == 'nonpositive'
+          PY
+          python -m coverage run --branch --source=example -m pytest -q test_example.py
+          python -m coverage report --fail-under=100

@@ -56,6 +56,10 @@ scripts/bump-library-versions.sh --go v1.12.0
 
 Review and merge the resulting changes normally.
 
+Python coverage has two defaults. The bump scripts update `DD_DEFAULT_COVERAGE_VERSION_PYTHON` for Python 3.10 and newer and the matching README table cell. They must keep `python-coverage-version` without an input default so an explicit override remains distinguishable from automatic selection. Python 3.9 stays on coverage `7.10.7`, pinned in the versioned installer; a modern coverage bump must not change that selection. Run the Python matrix before releasing a bump, including when bumping the tracer, since package Python support can change.
+
+For installer changes, release `DataDog/test-visibility-install-script` first, using a new `SCRIPT_VERSION` in its GitLab pipeline. Download the published bytes, verify their SHA256 against the reviewed source, then update both `INSTALLATION_SCRIPT_URL` and `INSTALLATION_SCRIPT_CHECKSUM` here. Never overwrite v15: existing immutable action releases rely on its checksum. The Python compatibility proposal targets v16; its locally computed checksum is provisional until the matching artifact is deployed and verified.
+
 ## Release the action
 
 Preview the next release first:

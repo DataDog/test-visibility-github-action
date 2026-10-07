@@ -34,9 +34,8 @@ inputs:
     required: false
     default: '4.15.2'
   python-coverage-version:
-    description: 'The version of the Python coverage package to use (optional). Defaults to the version pinned by this action release.'
+    description: 'Exact Python coverage version (optional). When omitted, uses 7.10.7 on Python 3.9 or this release’s pinned default on newer supported Python. An incompatible explicit version fails installation.'
     required: false
-    default: '7.16.1'
   ruby-tracer-version:
     description: 'The version of datadog-ci Ruby gem to use (optional). Defaults to the version pinned by this action release.'
     required: false
@@ -91,8 +90,8 @@ runs:
         echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
       shell: bash
       env:
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v15.sh
-        INSTALLATION_SCRIPT_CHECKSUM: e64a4a45e0b171f4294b9f949f7fc99946192f952a2d463c61fad3cb8b956a58
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v16.sh
+        INSTALLATION_SCRIPT_CHECKSUM: be1de997fab7862640146b6836c96cbf13f4e9fa577cb501e80c37c5a5c60768
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Get Go cache directories
@@ -172,6 +171,8 @@ runs:
         DD_SET_TRACER_VERSION_JS: ${{ inputs.js-tracer-version }}
         DD_SET_TRACER_VERSION_PYTHON: ${{ inputs.python-tracer-version }}
         DD_SET_COVERAGE_VERSION_PYTHON: ${{ inputs.python-coverage-version }}
+        # Release-owned default, separate from a user's explicit override.
+        DD_DEFAULT_COVERAGE_VERSION_PYTHON: '7.16.1'
         DD_SET_TRACER_VERSION_RUBY: ${{ inputs.ruby-tracer-version }}
         DD_SET_TRACER_VERSION_GO: ${{ inputs.go-tracer-version }}
         DD_CIVISIBILITY_GO_MODULE_DIR: ${{ inputs.go-module-dir }}
@@ -216,6 +217,7 @@ runs:
         fi
         if [ ! -z "$DD_TRACER_VERSION_PYTHON" ]; then
           echo "- __Python:__ $DD_TRACER_VERSION_PYTHON" >> $GITHUB_STEP_SUMMARY
+          echo "- __Python coverage:__ $DD_COVERAGE_VERSION_PYTHON" >> $GITHUB_STEP_SUMMARY
         fi
         if [ ! -z "$DD_TRACER_VERSION_RUBY" ]; then
           echo "- __Ruby:__ $DD_TRACER_VERSION_RUBY" >> $GITHUB_STEP_SUMMARY

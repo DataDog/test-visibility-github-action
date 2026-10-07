@@ -83,7 +83,11 @@ readme = File.read(readme_path)
 
 updates.each do |name, version|
   input_name = input_names.fetch(name)
-  action_pattern = /(^  #{Regexp.escape(input_name)}:\n(?:(?!^  [A-Za-z0-9_-]+:).*\n)*?^    default: )'[^']+'/
+  action_pattern = if name == 'coverage'
+    /(^        DD_DEFAULT_COVERAGE_VERSION_PYTHON: )'[^']+'/
+  else
+    /(^  #{Regexp.escape(input_name)}:\n(?:(?!^  [A-Za-z0-9_-]+:).*\n)*?^    default: )'[^']+'/
+  end
   abort "Unable to find #{input_name} default in #{action_path}" unless action.scan(action_pattern).length == 1
   action.sub!(action_pattern) { "#{Regexp.last_match(1)}'#{version}'" }
 

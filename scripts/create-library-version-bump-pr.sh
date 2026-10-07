@@ -56,7 +56,9 @@ current_dotnet=$(read_default dotnet-tracer-version)
 current_java=$(read_default java-tracer-version)
 current_js=$(read_default js-tracer-version)
 current_python=$(read_default python-tracer-version)
-current_coverage=$(read_default python-coverage-version)
+current_coverage=$(
+  ruby -ryaml -e 'step = YAML.load_file("action.yml").fetch("runs").fetch("steps").find { |item| item["id"] == "run-configuration-script" }; puts step.fetch("env").fetch("DD_DEFAULT_COVERAGE_VERSION_PYTHON")'
+)
 current_ruby=$(read_default ruby-tracer-version)
 current_go=$(read_default go-tracer-version)
 
