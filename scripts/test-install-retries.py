@@ -61,6 +61,9 @@ for name, download_failures, install_failures in [
         finally:
             server.shutdown()
             thread.join()
+            datadog_link = Path("/github/workspace/.datadog")
+            if datadog_link.is_symlink() and os.readlink(datadog_link) == str(workspace / ".datadog"):
+                datadog_link.unlink()
 
         succeeded = download_failures < 3 and install_failures < 3
         assert (result.returncode == 0) == succeeded, result.stdout + result.stderr
