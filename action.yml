@@ -138,10 +138,28 @@ runs:
 
         script_filepath="install_test_visibility.sh"
 
+        retry() {
+          local attempt exit_code delay
+          for attempt in 1 2 3; do
+            if "$@"; then
+              return 0
+            else
+              exit_code=$?
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              delay=$((2 ** attempt))
+              >&2 echo "Attempt $attempt failed. Retrying in $delay seconds..."
+              sleep "$delay"
+            fi
+          done
+          return "$exit_code"
+        }
+
         if command -v curl >/dev/null 2>&1; then
-          curl -Lo "$script_filepath" "$INSTALLATION_SCRIPT_URL"
+          retry curl -fLo "$script_filepath" "$INSTALLATION_SCRIPT_URL"
         elif command -v wget >/dev/null 2>&1; then
-          wget -O "$script_filepath" "$INSTALLATION_SCRIPT_URL"
+          retry wget --tries=1 -O "$script_filepath" "$INSTALLATION_SCRIPT_URL"
         else
           >&2 echo "Error: Neither wget nor curl is installed."
           exit 1
@@ -161,7 +179,15 @@ runs:
         fi
 
         chmod +x $script_filepath
-        ./$script_filepath >> "$GITHUB_ENV"
+        script_env_filepath="$(mktemp)"
+        trap 'rm -f "$script_env_filepath"' EXIT
+
+        run_configuration_script() {
+          ./$script_filepath > "$script_env_filepath"
+        }
+
+        retry run_configuration_script
+        cat "$script_env_filepath" >> "$GITHUB_ENV"
       shell: bash
       env:
         DD_CIVISIBILITY_INSTRUMENTATION_LANGUAGES: ${{ inputs.languages }}
