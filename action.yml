@@ -159,7 +159,11 @@ runs:
         if command -v curl >/dev/null 2>&1; then
           retry curl -fLo "$script_filepath" "$INSTALLATION_SCRIPT_URL"
         elif command -v wget >/dev/null 2>&1; then
-          retry wget --tries=1 -O "$script_filepath" "$INSTALLATION_SCRIPT_URL"
+          wget_args=(-O "$script_filepath")
+          if [[ "$(wget --help 2>&1)" == *"--tries"* ]]; then
+            wget_args=(--tries=1 "${wget_args[@]}")
+          fi
+          retry wget "${wget_args[@]}" "$INSTALLATION_SCRIPT_URL"
         else
           >&2 echo "Error: Neither wget nor curl is installed."
           exit 1
