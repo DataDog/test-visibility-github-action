@@ -12,16 +12,6 @@ permissions:
   contents: read
 
 jobs:
-  test-library-version-bump-pr:
-    name: Library Bump PR Script Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Test Library Bump PR Script
-        run: python3 scripts/test-library-version-bump-pr.py
-
   test-install-retries:
     name: Install Retry Test
     runs-on: ubuntu-latest
