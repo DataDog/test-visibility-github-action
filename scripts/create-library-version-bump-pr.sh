@@ -39,14 +39,19 @@ for command in curl gh git ruby; do
   fi
 done
 
-gh api user --silent >/dev/null
-
 base_branch="main"
 bump_label="library-version-bump"
 remote="origin"
 repo="DataDog/test-visibility-github-action"
 semver_minor_label="semver-minor"
 semver_patch_label="semver-patch"
+
+if [[ "$dry_run" != "true" ]]; then
+  if ! can_push=$(gh api "repos/$repo" --jq '.permissions.push // false') || [[ "$can_push" != "true" ]]; then
+    echo "The current gh account cannot access $repo with write permissions. Check gh auth status and select an account with repository access." >&2
+    exit 1
+  fi
+fi
 
 read_default() {
   ruby -ryaml -e 'puts YAML.load_file("action.yml").fetch("inputs").fetch(ARGV.fetch(0)).fetch("default")' "$1"
@@ -201,6 +206,29 @@ if git show-ref --verify --quiet "refs/heads/$branch_name"; then
   exit 1
 fi
 
+existing_labels=$(gh api --paginate "repos/$repo/labels" --jq '.[].name')
+
+ensure_label() {
+  local label="$1"
+  local description="$2"
+  local color="$3"
+  local existing_label
+
+  while IFS= read -r existing_label; do
+    if [[ "$existing_label" == "$label" ]]; then
+      return 0
+    fi
+  done <<< "$existing_labels"
+
+  if ! gh label create "$label" --repo "$repo" --description "$description" --color "$color"; then
+    echo "Could not create required label '$label'. Check the gh account's label permissions. No branch, commit, or push was created." >&2
+    return 1
+  fi
+}
+
+ensure_label "$bump_label" "Marks PRs that bump pinned library versions" "1D76DB"
+ensure_label "$release_label" "Requests a $release_bump_kind test-visibility-github-action release after merge" "0E8A16"
+
 git fetch "$remote" "$base_branch"
 git checkout -b "$branch_name" FETCH_HEAD
 
@@ -210,18 +238,6 @@ git add action.yml README.md
 git commit -S -m "chore: bump pinned library versions"
 git verify-commit HEAD
 git push -u "$remote" "$branch_name"
-
-gh label create "$bump_label" \
-  --repo "$repo" \
-  --description "Marks PRs that bump pinned library versions" \
-  --color "1D76DB" \
-  --force
-
-gh label create "$release_label" \
-  --repo "$repo" \
-  --description "Requests a $release_bump_kind test-visibility-github-action release after merge" \
-  --color "0E8A16" \
-  --force
 
 changes_markdown=$(printf -- '- %s\n' "${changes[@]}")
 body_file=$(mktemp)
