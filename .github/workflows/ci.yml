@@ -257,10 +257,15 @@ jobs:
   # The first job saves the action's Go cache and the second, on a new runner,
   # restores it: go test then finds the project's module without a proxy. The
   # run's id in go.mod gives each run its own cache key, so the second job
-  # restores only what the first saved.
+  # restores only what the first saved. The second job takes the module path
+  # and the Go version, both part of the key, from the first, so it finds that
+  # cache also when only the second job is rerun.
   test-go-action-cache-save:
     name: Go Cache (save)
     runs-on: ubuntu-latest
+    outputs:
+      module-path: ${{ steps.project.outputs.module-path }}
+      go-version: ${{ steps.project.outputs.go-version }}
     defaults:
       run:
         shell: bash
@@ -275,9 +280,15 @@ jobs:
           cache: false
 
       - name: Create Go Project
+        id: project
         env:
           MODULE_PATH: example.com/cache/r${{ github.run_id }}-${{ github.run_attempt }}
-        run: scripts/create-go-cache-project.sh
+        run: |
+          set -euo pipefail
+          scripts/create-go-cache-project.sh
+          echo "module-path=$MODULE_PATH" >> "$GITHUB_OUTPUT"
+          go_version="$(go env GOVERSION)"
+          echo "go-version=${go_version#go}" >> "$GITHUB_OUTPUT"
 
       - name: Run Instrumentation Action
         uses: ./
@@ -305,14 +316,15 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
-          go-version: stable
+          go-version: ${{ needs.test-go-action-cache-save.outputs.go-version }}
           cache: false
 
       - name: Create Go Project
         env:
-          MODULE_PATH: example.com/cache/r${{ github.run_id }}-${{ github.run_attempt }}
+          MODULE_PATH: ${{ needs.test-go-action-cache-save.outputs.module-path }}
         run: |
           set -euo pipefail
+          [ -n "$MODULE_PATH" ] || { echo "Error: The save job published no module path."; exit 1; }
           scripts/create-go-cache-project.sh
           [ ! -e "$(go env GOMODCACHE)/github.com/google/go-cmp@v0.7.0" ] || { echo "Error: go-cmp is in GOMODCACHE before the action restored its cache."; exit 1; }
 
