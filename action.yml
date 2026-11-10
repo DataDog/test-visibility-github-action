@@ -42,12 +42,9 @@ inputs:
     required: false
     default: '1.42.0'
   go-tracer-version:
-    description: 'The version of Orchestrion automatic compile-time instrumentation of Go code (https://github.com/datadog/orchestrion) to use (optional). Defaults to the version pinned by this action release.'
+    description: 'The version of ddtest (https://github.com/DataDog/ddtest), which instruments Go tests, to use (optional); v1.14.0 is the oldest supported. A value that names no ddtest release from v1.14.0 on, such as an earlier Orchestrion version, installs the latest ddtest with a warning. Defaults to the version pinned by this action release.'
     required: false
-    default: 'v1.14.0'
-  go-module-dir:
-    description: 'Path to the Go module root directory to instrument (optional). Use this when the repository contains multiple Go modules or the Go module is not in the workspace root.'
-    required: false
+    default: 'v1.16.0'
   java-instrumented-build-system:
     description: 'If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented.'
     required: false
@@ -79,6 +76,10 @@ inputs:
     description: 'Deprecated, alias for api_key'
     required: false
     deprecationMessage: 'api-key input is deprecated, please use api_key instead'
+  go-module-dir:
+    description: 'Deprecated, has no effect: ddtest instruments go test in every Go module of the repository'
+    required: false
+    deprecationMessage: 'go-module-dir input is deprecated and has no effect: ddtest instruments go test in every Go module of the repository'
 
 runs:
   using: 'composite'
@@ -91,8 +92,8 @@ runs:
         echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
       shell: bash
       env:
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v15.sh
-        INSTALLATION_SCRIPT_CHECKSUM: e64a4a45e0b171f4294b9f949f7fc99946192f952a2d463c61fad3cb8b956a58
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v16.sh
+        INSTALLATION_SCRIPT_CHECKSUM: c17d89e4e0d2bbfb717217e05f7e64fb0f9c463a1836e46151080b1a6c621ea9
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Get Go cache directories
@@ -104,7 +105,6 @@ runs:
         echo "GOMODCACHE_PATH=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
         echo "GOCACHE_PATH=$(go env GOCACHE)" >> $GITHUB_OUTPUT
         echo "GOVERSION=$(go env GOVERSION)" >> $GITHUB_OUTPUT
-        echo "GOPATH=$(go env GOPATH)" >> $GITHUB_OUTPUT
 
     - name: Go cache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0 v4
@@ -115,7 +115,6 @@ runs:
           ${{ steps.go-cache-paths.outputs.GOMODCACHE_PATH }}
           ${{ env.GITHUB_WORKSPACE }}/.datadog
           /github/workspace/.datadog
-          ${{ steps.go-cache-paths.outputs.GOPATH }}/bin/orchestrion
         key: test-optimization-go-${{ env.INSTALLATION_SCRIPT_CHECKSUM }}-${{ steps.go-cache-paths.outputs.GOVERSION }}-${{ inputs.go-tracer-version }}-${{ hashFiles('**/go.mod') }}-${{ hashFiles('**/go.sum') }}
 
     - name: Download and run configuration script
@@ -204,7 +203,6 @@ runs:
         DD_SET_COVERAGE_VERSION_PYTHON: ${{ inputs.python-coverage-version }}
         DD_SET_TRACER_VERSION_RUBY: ${{ inputs.ruby-tracer-version }}
         DD_SET_TRACER_VERSION_GO: ${{ inputs.go-tracer-version }}
-        DD_CIVISIBILITY_GO_MODULE_DIR: ${{ inputs.go-module-dir }}
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
         DD_SET_TRACER_REPOSITORY_URL_JAVA: ${{ inputs.java-tracer-repository-url }}
         DD_SET_AUTH_HEADER_JAVA: ${{ inputs.java-tracer-repository-auth-header }}

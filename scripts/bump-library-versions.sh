@@ -14,7 +14,7 @@ Options:
   --python VERSION    Datadog Python tracer version
   --coverage VERSION  Python coverage version
   --ruby VERSION      datadog-ci Ruby gem version
-  --go VERSION        Orchestrion version, including the leading v
+  --go VERSION        ddtest version, including the leading v
   -h, --help          Show this help
 EOF
 }

@@ -72,7 +72,7 @@ No input names or required configuration change. The migration only changes how 
 | Your workflow | Experience after migrating |
 | ------------- | -------------------------- |
 | No library-version inputs | The first v3 run uses the versions listed in the [configuration table](#configuration), which may differ from the versions resolved by the last v2 run. Defaults no longer change independently on every run. |
-| Explicit library-version inputs | Your selected versions continue to override the action defaults, so the installed library versions do not change as part of the migration. |
+| Explicit library-version inputs | Your selected versions continue to override the action defaults, so the installed library versions do not change as part of the migration. The exception is `go-tracer-version`, which now selects a ddtest release instead of an Orchestrion version; see [Tracing Go tests](#tracing-go-tests). |
 
 With `@v3`, pinned defaults change only when a reviewed v3 release moves the major reference. Use an exact release tag or full commit SHA instead if the action and its defaults must remain unchanged until you explicitly update the reference.
 
@@ -94,8 +94,7 @@ The action has the following parameters:
 | python-tracer-version          | The version of Datadog Python tracer to use.                                                                                                                                                                                                                                                       | false    | 4.15.6        |
 | python-coverage-version        | The version of the Python `coverage` package to use.                                                                                                                                                                                                                                               | false    | 7.16.2        |
 | ruby-tracer-version            | The version of datadog-ci Ruby gem to use.                                                                                                                                                                                                                                                         | false    | 1.42.0        |
-| go-tracer-version              | The version of Orchestrion to use.                                                                                                                                                                                                                                                                 | false    | v1.14.0       |
-| go-module-dir                  | Path to the Go module root directory to instrument. Use this when the repository contains multiple Go modules or the Go module is not in the workspace root.                                                                                                                                       | false    |               |
+| go-tracer-version              | The version of [ddtest](https://github.com/DataDog/ddtest) to use for Go, `v1.14.0` or newer. See [Tracing Go tests](#tracing-go-tests).                                                                                                                                                           | false    | v1.16.0       |
 | java-instrumented-build-system | If provided, only the specified build systems will be instrumented (allowed values are `gradle`,`maven`,`sbt`,`ant`,`all`). `all` is a special value that instruments every Java process. If this property is not provided, all known build systems will be instrumented (Gradle, Maven, SBT, Ant). | false    |               |
 | java-tracer-repository-url     | Base URL of a Maven repository (or proxy/mirror) used to download the Java tracer JAR and its sha256. The path under the base must follow the standard Maven layout for `com.datadoghq:dd-java-agent`. Defaults to Maven Central.                                            | false    |               |
 | java-tracer-repository-auth-header | Optional HTTP header used to authenticate against `java-tracer-repository-url`, provided as a complete `Name: Value` string (e.g. `Authorization: Bearer <token>`). Only used when `java-tracer-repository-url` is set. Redirects are followed by default; the header will be re-sent on each redirect hop. `curl` strips `Authorization` and `Cookie` headers on cross-origin redirects (different host, port, or scheme), but `wget` does not strip any header. Custom header names (e.g. `X-API-Key`) are never stripped by either tool — prefer the `Authorization: …` form when possible.                       | false    |               |
@@ -116,7 +115,7 @@ Set a library's version input to override the default selected by the action rel
     java-tracer-version: 1.64.0
 ```
 
-This lets you receive action updates while holding a particular library at a version you have validated. That library will not receive automatic bumps, so update the input explicitly when you want a newer version. The same behavior applies to every library-version input in the table above.
+This lets you receive action updates while holding a particular library at a version you have validated. That library will not receive automatic bumps, so update the input explicitly when you want a newer version. The same behavior applies to every library-version input in the table above, except `go-tracer-version` for a value set before the action moved from Orchestrion to ddtest; see [Tracing Go tests](#tracing-go-tests).
 
 Maintainers can use the local scripts described in [RELEASE.md](RELEASE.md) to create a batched library bump PR and publish the resulting action release.
 
@@ -148,19 +147,6 @@ By default the Java tracer JAR is fetched from Maven Central (`https://repo1.mav
 ```
 
 The base URL must expose the standard Maven layout for `com.datadoghq:dd-java-agent` (i.e. `<base>/<version>/dd-java-agent-<version>.jar` and the matching `.sha256`, plus `<base>/maven-metadata.xml` when no `java-tracer-version` is pinned). The `.sha256` files are still verified.
-
-### Go multi-module repositories
-
-If your repository contains multiple Go modules, or the Go module you want to instrument is not at the workspace root, set `go-module-dir` to the module root directory that contains the target `go.mod` file:
-
-```yaml
-- name: Configure Datadog Test Optimization
-  uses: datadog/test-visibility-github-action@v3
-  with:
-    languages: go
-    api_key: ${{ secrets.DD_API_KEY }}
-    go-module-dir: ./services/payments
-```
 
 ## Limitations
 
@@ -197,3 +183,28 @@ To work around the `NODE_OPTIONS` limitation, the action provides a separate `DD
 ```
 
 **Important**: `vitest` and `dd-trace` require Node.js>=18.19 or Node.js>=20.6 to work together.
+
+### Tracing Go tests
+
+Go tests report through [`ddtest instrument`](https://github.com/DataDog/ddtest/blob/main/ddto/README.md). The action puts ddtest's `go` command first on `PATH` for the job's next steps. That `go` runs `go test` through ddtest, also when `make`, a script or [gotestsum](https://github.com/gotestyourself/gotestsum) starts it, and runs every other `go` command unchanged. The action does not modify your `go.mod`, and a repository with several Go modules needs no configuration.
+
+```yaml
+steps:
+  - name: Set up Go
+    uses: actions/setup-go@v5
+    with:
+      go-version: stable
+  - name: Configure Datadog Test Optimization
+    uses: datadog/test-visibility-github-action@v3
+    with:
+      languages: go
+      api_key: ${{ secrets.DD_API_KEY }}
+  - name: Run tests
+    run: go test ./...
+```
+
+- Set up Go 1.25 or newer before this action. With an older Go, the action prints a warning and skips Go instrumentation, and the job continues. Your `go.mod` can still declare an older Go version.
+- Run the tests in a later step of the same job, not in a Docker container action, since ddtest's `go` command lives in the runner user's cache directory. No step after this action may put another `go` first on `PATH`, such as setting up Go again; otherwise `go test` runs without Test Optimization.
+- Keep the `.datadog` folder that the action creates in the workspace until the tests have run. On Linux and macOS, ddtest's `go` command is a link to the executable in that folder: if a later step deletes it, as `actions/checkout` or `git clean` do, `go` is the toolchain's again and `go test` runs without Test Optimization, with no warning.
+- With Test Impact Analysis, build the tests with coverage in count or atomic mode, such as `go test -cover -covermode=atomic ./...`, so each test reports the code it ran.
+- `go-tracer-version` selects a ddtest release. Up to v3.3.0, the action instrumented Go with Orchestrion and this input selected an Orchestrion version, so a value set then no longer installs that version. A value that names no ddtest release from `v1.14.0` on, such as `v1.8.0`, installs the latest ddtest with a warning, and a version from `v1.14.0` on installs the ddtest release with the same number. To keep Orchestrion, pin the action to v3.3.0 or earlier, by tag or full commit SHA. The `go-module-dir` input is deprecated and has no effect.
