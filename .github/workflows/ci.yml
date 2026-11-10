@@ -253,3 +253,137 @@ jobs:
 
           # go test leaves the projects' files, go.mod included, as they were.
           diff -r go-smoke.before go-smoke || { echo "Error: go test changed the projects' files."; exit 1; }
+
+  # The first job saves the action's Go cache and the second, on a new runner,
+  # restores it: go test then finds the project's module without a proxy. The
+  # run's id in go.mod gives each run its own cache key, so the second job
+  # restores only what the first saved.
+  test-go-action-cache-save:
+    name: Go Cache (save)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Create Go Project
+        env:
+          MODULE_PATH: example.com/cache/r${{ github.run_id }}-${{ github.run_attempt }}
+        run: scripts/create-go-cache-project.sh
+
+      - name: Run Instrumentation Action
+        uses: ./
+        with:
+          languages: go
+          api_key: "dummy"
+
+      - name: Download the Project's Module
+        run: |
+          set -euo pipefail
+          (cd go-cache && go mod download)
+          [ -d "$(go env GOMODCACHE)/github.com/google/go-cmp@v0.7.0" ] || { echo "Error: go-cmp is not in GOMODCACHE."; exit 1; }
+
+  test-go-action-cache-restore:
+    name: Go Cache (restore)
+    needs: test-go-action-cache-save
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Create Go Project
+        env:
+          MODULE_PATH: example.com/cache/r${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          scripts/create-go-cache-project.sh
+          [ ! -e "$(go env GOMODCACHE)/github.com/google/go-cmp@v0.7.0" ] || { echo "Error: go-cmp is in GOMODCACHE before the action restored its cache."; exit 1; }
+
+      - name: Run Instrumentation Action
+        uses: ./
+        with:
+          languages: go
+          api_key: "dummy"
+
+      - name: Run Go Tests with the Restored Cache
+        env:
+          # Only the restored GOMODCACHE can provide go-cmp.
+          GOPROXY: "off"
+          DD_CIVISIBILITY_AGENTLESS_URL: http://127.0.0.1:9
+          DD_TRACE_DEBUG: "true"
+        run: |
+          set -euo pipefail
+          [[ "$(command -v go)" == *go-shim* ]] || { echo "Error: go is $(command -v go), not ddtest's go command."; exit 1; }
+          log="$PWD/go-cache.log"
+          if ! (cd go-cache && go test -count=1 -v ./...) > "$log" 2>&1; then
+            cat "$log"
+            echo "Error: go test failed with the restored cache."
+            exit 1
+          fi
+          cat "$log"
+          grep -Fq "plan ready" "$log" || { echo "Error: go test did not run through ddtest instrument."; exit 1; }
+
+  # create-library-version-bump-pr.sh reads the latest ddtest release and hands
+  # it to bump-library-versions.sh, which edits only the go-tracer-version
+  # default in action.yml and its README row.
+  test-library-version-bump:
+    name: Library Version Bump (Go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Bump Go to the Latest ddtest Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          go_default() {
+            awk '/^  go-tracer-version:/ { input = 1 } input && /^    default:/ { gsub(/[ \047\r]/, "", $2); print $2; exit }' action.yml
+          }
+          readme_go_default() {
+            awk -F '|' '$2 ~ /^ go-tracer-version / { gsub(/ /, "", $5); print $5 }' README.md
+          }
+
+          # The query that the bump PR script runs.
+          latest_go_query=$(grep '^latest_go=' scripts/create-library-version-bump-pr.sh)
+          eval "$latest_go_query"
+          echo "Latest release from the bump script's query: $latest_go"
+          # GitHub redirects releases/latest to the newest release's tag.
+          latest_ddtest="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/DataDog/ddtest/releases/latest)"
+          latest_ddtest="${latest_ddtest##*/}"
+          [ "$latest_go" = "$latest_ddtest" ] || { echo "Error: The bump script's query returned $latest_go, not the latest ddtest release $latest_ddtest."; exit 1; }
+
+          for version in v1.99.0 "$latest_go"; do
+            git checkout -- action.yml README.md
+            scripts/bump-library-versions.sh --go "$version"
+            [ "$(go_default)" = "$version" ] || { echo "Error: action.yml defaults to $(go_default), not $version."; exit 1; }
+            [ "$(readme_go_default)" = "$version" ] || { echo "Error: README.md defaults to $(readme_go_default), not $version."; exit 1; }
+            changed=$(git diff --name-only | tr '\n' ' ')
+            if [ "$version" = "$latest_go" ] && [ -z "$changed" ]; then
+              continue
+            fi
+            [ "$changed" = "README.md action.yml " ] || { echo "Error: The bump changed: $changed"; exit 1; }
+            [ "$(git diff --numstat | awk '{ added += $1; removed += $2 } END { print added, removed }')" = "2 2" ] || { git diff; echo "Error: The bump changed more than the two defaults."; exit 1; }
+          done
