@@ -96,7 +96,7 @@ jobs:
             os: ubuntu-latest
             runner_go: stable
             layout: multiple_modules
-            go_module_dir: ./services/payments
+            go_module_dir: ./go-smoke/services/payments
             expect_instrumented: true
             expected_ddtest_version: default
           # ddtest needs Go 1.25: the action skips Go with a warning and succeeds.
@@ -168,6 +168,8 @@ jobs:
           done
           printf '%s\n' "${modules[@]}" > go-smoke.modules
           cp -R go-smoke go-smoke.before
+          # The toolchain's go, before the action puts ddtest's first on PATH.
+          command -v go > toolchain-go.path
 
       # An input set to an empty string is not its default, so each set of
       # inputs has its own step.
@@ -200,18 +202,19 @@ jobs:
         env:
           EXPECT_INSTRUMENTED: ${{ matrix.expect_instrumented }}
           EXPECTED_DDTEST_VERSION: ${{ matrix.expected_ddtest_version }}
-          # Nothing listens there: the tests need no intake, and the dummy API
-          # key reaches no Datadog site.
+          # Nothing listens there; test-go-reporting.sh points its own run at
+          # its intake. The dummy API key reaches no Datadog site.
           DD_CIVISIBILITY_AGENTLESS_URL: http://127.0.0.1:9
-          DD_TRACE_DEBUG: "true"
         run: |
           set -euo pipefail
 
           go_path="$(command -v go)"
-          echo "go: $go_path"
+          toolchain_go_path="$(cat toolchain-go.path)"
+          echo "go: $go_path (before the action: $toolchain_go_path)"
 
           if [ "$EXPECT_INSTRUMENTED" = "true" ]; then
-            [[ "$go_path" == *go-shim* ]] || { echo "Error: go is $go_path, not ddtest's go command."; exit 1; }
+            reporting=reported
+            [ "$go_path" != "$toolchain_go_path" ] || { echo "Error: go is still the toolchain's, $go_path, not ddtest's go command."; exit 1; }
             expected_version="$EXPECTED_DDTEST_VERSION"
             if [ "$expected_version" = "default" ]; then
               expected_version="$(awk '/^  go-tracer-version:/ { input = 1 } input && /^    default:/ { gsub(/[ \047\r]/, "", $2); print $2; exit }' action.yml)"
@@ -222,28 +225,17 @@ jobs:
             fi
             [ "${DD_TRACER_VERSION_GO:-}" = "$expected_version" ] || { echo "Error: ddtest ${DD_TRACER_VERSION_GO:-?} was installed, not $expected_version."; exit 1; }
           else
-            [[ "$go_path" != *go-shim* ]] || { echo "Error: go is ddtest's go command, $go_path, though Go was skipped."; exit 1; }
+            reporting=unreported
+            [ "$go_path" = "$toolchain_go_path" ] || { echo "Error: go is $go_path, not the toolchain's $toolchain_go_path, though Go was skipped."; exit 1; }
             [ -z "${DD_TRACER_VERSION_GO:-}" ] || { echo "Error: Expected DD_TRACER_VERSION_GO to be unset, got '$DD_TRACER_VERSION_GO'."; exit 1; }
           fi
 
           while IFS= read -r module_dir; do
-            log="$PWD/go-smoke.log"
-            if ! (cd "$module_dir" && go test -count=1 -v ./...) > "$log" 2>&1; then
-              cat "$log"
-              echo "Error: go test failed in $module_dir."
-              exit 1
-            fi
-            cat "$log"
-            # ddtest's debug output: the build was planned with Test
-            # Optimization and the test function ran instrumented.
-            for marker in "plan ready" "instrumentTestingTFunc: instrumenting test function"; do
-              if [ "$EXPECT_INSTRUMENTED" = "true" ]; then
-                grep -Fq "$marker" "$log" || { echo "Error: go test in $module_dir did not run through ddtest instrument ('$marker' missing)."; exit 1; }
-              else
-                ! grep -Fq "$marker" "$log" || { echo "Error: go test in $module_dir ran through ddtest instrument, though Go was skipped."; exit 1; }
-              fi
-            done
+            # go test passes, and its test's event reaches the intake only
+            # when ddtest instruments it.
+            scripts/test-go-reporting.sh "$module_dir" TestSmoke "$reporting"
 
+            log="$PWD/go-smoke.log"
             if (cd "$module_dir" && SMOKE_FAIL=1 go test -count=1 ./...) > "$log" 2>&1; then
               cat "$log"
               echo "Error: A failing test must fail go test in $module_dir."
@@ -327,6 +319,7 @@ jobs:
           [ -n "$MODULE_PATH" ] || { echo "Error: The save job published no module path."; exit 1; }
           scripts/create-go-cache-project.sh
           [ ! -e "$(go env GOMODCACHE)/github.com/google/go-cmp@v0.7.0" ] || { echo "Error: go-cmp is in GOMODCACHE before the action restored its cache."; exit 1; }
+          command -v go > toolchain-go.path
 
       - name: Run Instrumentation Action
         uses: ./
@@ -338,19 +331,10 @@ jobs:
         env:
           # Only the restored GOMODCACHE can provide go-cmp.
           GOPROXY: "off"
-          DD_CIVISIBILITY_AGENTLESS_URL: http://127.0.0.1:9
-          DD_TRACE_DEBUG: "true"
         run: |
           set -euo pipefail
-          [[ "$(command -v go)" == *go-shim* ]] || { echo "Error: go is $(command -v go), not ddtest's go command."; exit 1; }
-          log="$PWD/go-cache.log"
-          if ! (cd go-cache && go test -count=1 -v ./...) > "$log" 2>&1; then
-            cat "$log"
-            echo "Error: go test failed with the restored cache."
-            exit 1
-          fi
-          cat "$log"
-          grep -Fq "plan ready" "$log" || { echo "Error: go test did not run through ddtest instrument."; exit 1; }
+          [ "$(command -v go)" != "$(cat toolchain-go.path)" ] || { echo "Error: go is still the toolchain's, not ddtest's go command."; exit 1; }
+          scripts/test-go-reporting.sh go-cache TestCache reported
 
   # create-library-version-bump-pr.sh reads the latest ddtest release and hands
   # it to bump-library-versions.sh, which edits only the go-tracer-version
