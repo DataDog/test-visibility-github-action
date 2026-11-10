@@ -72,7 +72,7 @@ No input names or required configuration change. The migration only changes how 
 | Your workflow | Experience after migrating |
 | ------------- | -------------------------- |
 | No library-version inputs | The first v3 run uses the versions listed in the [configuration table](#configuration), which may differ from the versions resolved by the last v2 run. Defaults no longer change independently on every run. |
-| Explicit library-version inputs | Your selected versions continue to override the action defaults, so the installed library versions do not change as part of the migration. |
+| Explicit library-version inputs | Your selected versions continue to override the action defaults, so the installed library versions do not change as part of the migration. The exception is `go-tracer-version`, which now selects a ddtest release instead of an Orchestrion version; see [Tracing Go tests](#tracing-go-tests). |
 
 With `@v3`, pinned defaults change only when a reviewed v3 release moves the major reference. Use an exact release tag or full commit SHA instead if the action and its defaults must remain unchanged until you explicitly update the reference.
 
@@ -115,7 +115,7 @@ Set a library's version input to override the default selected by the action rel
     java-tracer-version: 1.64.0
 ```
 
-This lets you receive action updates while holding a particular library at a version you have validated. That library will not receive automatic bumps, so update the input explicitly when you want a newer version. The same behavior applies to every library-version input in the table above.
+This lets you receive action updates while holding a particular library at a version you have validated. That library will not receive automatic bumps, so update the input explicitly when you want a newer version. The same behavior applies to every library-version input in the table above, except `go-tracer-version` for a value set before the action moved from Orchestrion to ddtest; see [Tracing Go tests](#tracing-go-tests).
 
 Maintainers can use the local scripts described in [RELEASE.md](RELEASE.md) to create a batched library bump PR and publish the resulting action release.
 
@@ -206,4 +206,4 @@ steps:
 - Set up Go 1.25 or newer before this action. With an older Go, the action prints a warning and skips Go instrumentation, and the job continues. Your `go.mod` can still declare an older Go version.
 - Run the tests in a later step of the same job, not in a Docker container action, since ddtest's `go` command lives in the runner user's cache directory. No step after this action may put another `go` first on `PATH`, such as setting up Go again; otherwise `go test` runs without Test Optimization.
 - With Test Impact Analysis, build the tests with coverage in count or atomic mode, such as `go test -cover -covermode=atomic ./...`, so each test reports the code it ran.
-- `go-tracer-version` selects a ddtest release. It used to select an Orchestrion version: a value that names no ddtest release from `v1.14.0` on, such as an earlier Orchestrion version, installs the latest ddtest with a warning. The `go-module-dir` input is deprecated and has no effect.
+- `go-tracer-version` selects a ddtest release. Up to v3.3.0, the action instrumented Go with Orchestrion and this input selected an Orchestrion version, so a value set then no longer installs that version. A value that names no ddtest release from `v1.14.0` on, such as `v1.8.0`, installs the latest ddtest with a warning, and a version from `v1.14.0` on installs the ddtest release with the same number. To keep Orchestrion, pin the action to v3.3.0 or earlier, by tag or full commit SHA. The `go-module-dir` input is deprecated and has no effect.
