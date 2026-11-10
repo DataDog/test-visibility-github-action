@@ -39,7 +39,7 @@ Create a single PR containing every available update:
 scripts/create-library-version-bump-pr.sh
 ```
 
-The script reads the official package sources for .NET, Java, JavaScript, Python, Python coverage, Ruby, and Go/Orchestrion. If at least one pinned default is outdated, it creates a branch, updates `action.yml` and `README.md`, creates and verifies a signed commit, pushes the branch, and opens a PR.
+The script reads the official package sources for .NET, Java, JavaScript, Python, Python coverage, Ruby, and Go/ddtest. If at least one pinned default is outdated, it creates a branch, updates `action.yml` and `README.md`, creates and verifies a signed commit, pushes the branch, and opens a PR.
 
 Before making changes, it checks that the credentials selected by `gh` have write access to this repository. Git SSH authentication and `gh` API authentication can use different accounts. It reuses existing labels and creates any missing labels before creating the branch, so a label permission failure stops before any commit or push.
 
@@ -53,7 +53,7 @@ Use `scripts/bump-library-versions.sh` only as a lower-level manual tool when yo
 
 ```bash
 scripts/bump-library-versions.sh --java 1.65.0 --js 6.3.1
-scripts/bump-library-versions.sh --go v1.12.0
+scripts/bump-library-versions.sh --go v1.16.0
 ```
 
 Review and merge the resulting changes normally.
