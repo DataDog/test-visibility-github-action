@@ -20,27 +20,27 @@ inputs:
   dotnet-tracer-version:
     description: 'The version of Datadog .NET tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '3.55.1'
+    default: '3.57.0'
   java-tracer-version:
     description: 'The version of Datadog Java tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '1.67.1'
+    default: '1.68.2'
   js-tracer-version:
     description: 'The version of Datadog JS tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '6.21.0'
+    default: '6.24.0'
   python-tracer-version:
     description: 'The version of Datadog Python tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '4.15.6'
+    default: '4.16.4'
   python-coverage-version:
     description: 'The version of the Python coverage package to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '7.16.2'
+    default: '7.17.2'
   ruby-tracer-version:
     description: 'The version of datadog-ci Ruby gem to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '1.42.0'
+    default: '1.43.0'
   go-tracer-version:
     description: 'The version of ddtest (https://github.com/DataDog/ddtest), which instruments Go tests, to use (optional); v1.14.0 is the oldest supported. A value that names no ddtest release from v1.14.0 on, such as an earlier Orchestrion version, installs the latest ddtest with a warning. Defaults to the version pinned by this action release.'
     required: false
