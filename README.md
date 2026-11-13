@@ -166,7 +166,7 @@ To work around the `NODE_OPTIONS` limitation, the action provides a separate `DD
     NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
 ```
 
-Cypress uses the same `NODE_OPTIONS` configuration as other JavaScript test frameworks. No changes to the Cypress configuration or support file are required. Use `dd-trace` v5.97.0 or later on the v5 release line, or v6.0.0 or later on the v6 release line, and a [compatible Cypress version](https://docs.datadoghq.com/tests/setup/javascript/?tab=cypress#compatibility) (10.2 or later).
+Cypress uses the same `NODE_OPTIONS` configuration as other JavaScript test frameworks. No changes to the Cypress configuration or support file are required.
 
 ### Tracing vitest tests
 
