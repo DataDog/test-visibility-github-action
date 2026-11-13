@@ -166,8 +166,6 @@ To work around the `NODE_OPTIONS` limitation, the action provides a separate `DD
     NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
 ```
 
-Cypress uses the same `NODE_OPTIONS` configuration as other JavaScript test frameworks. No changes to the Cypress configuration or support file are required.
-
 ### Tracing vitest tests
 
 ℹ️ This section is only relevant if you're running tests with [vitest](https://github.com/vitest-dev/vitest). Vitest is ESM first and requires the additional `--import` flag shown below.
