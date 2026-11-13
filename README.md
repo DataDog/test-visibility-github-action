@@ -152,7 +152,7 @@ The base URL must expose the standard Maven layout for `com.datadoghq:dd-java-ag
 
 For security reasons Github [does not allow](https://github.blog/changelog/2023-10-05-github-actions-node_options-is-now-restricted-from-github_env/) actions to alter the `NODE_OPTIONS` environment variable, so you'll have to pass it manually.
 
-### Tracing JS tests (except `vitest` and `cypress`)
+### Tracing JS tests (except `vitest`)
 
 If you're running tests with [vitest](https://github.com/vitest-dev/vitest), go to [Tracing vitest tests](#tracing-vitest-tests).
 
@@ -166,11 +166,11 @@ To work around the `NODE_OPTIONS` limitation, the action provides a separate `DD
     NODE_OPTIONS: -r ${{ env.DD_TRACE_PACKAGE }}
 ```
 
-**NOTE**: To instrument your [Cypress](https://www.cypress.io/) tests with Datadog Test Optimization, please follow the manual steps in the [docs](https://docs.datadoghq.com/tests/setup/javascript/?tab=cypress).
+Cypress uses the same `NODE_OPTIONS` configuration as other JavaScript test frameworks. No changes to the Cypress configuration or support file are required. Use `dd-trace` v5.97.0 or later on the v5 release line, or v6.0.0 or later on the v6 release line, and a [compatible Cypress version](https://docs.datadoghq.com/tests/setup/javascript/?tab=cypress#compatibility) (10.2 or later).
 
 ### Tracing vitest tests
 
-ℹ️ This section is only relevant if you're running tests with [vitest](https://github.com/vitest-dev/vitest).
+ℹ️ This section is only relevant if you're running tests with [vitest](https://github.com/vitest-dev/vitest). Vitest is ESM first and requires the additional `--import` flag shown below.
 
 To work around the `NODE_OPTIONS` limitation, the action provides a separate `DD_TRACE_PACKAGE` and `DD_TRACE_ESM_IMPORT` variables that need to be appended to `NODE_OPTIONS` manually:
 
