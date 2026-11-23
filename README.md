@@ -1,7 +1,7 @@
 # <img height="25" src="logos/test_visibility_logo.png" /> Datadog Test Optimization GitHub Action
 
 GitHub Action that installs and configures [Datadog Test Optimization](https://docs.datadoghq.com/tests/).
-Supported languages are .NET, Java, Javascript, Python, Ruby and Go.
+Supported languages are .NET, Java, Javascript, Python, Ruby, Go and Rust.
 
 ## About Datadog Test Optimization
 
@@ -84,7 +84,7 @@ The action has the following parameters:
 
 | Name                           | Description                                                                                                                                                                                                                                                                                         | Required | Default       |
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------- |
-| languages                      | List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby", "go" (multiple languages can be specified as a space-separated list).                                                                                                                 | true     |               |
+| languages                      | List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby", "go", "rust" (multiple languages can be specified as a space-separated list).                                                                                                         | true     |               |
 | api_key                        | Datadog API key. Can be found at <https://app.datadoghq.com/organization-settings/api-keys>                                                                                                                                                                                                           | true     |               |
 | site                           | Datadog site. See <https://docs.datadoghq.com/getting_started/site> for more information about sites.                                                                                                                                                                                                 | false    | datadoghq.com |
 | service                        | The name of the service or library being tested.                                                                                                                                                                                                                                                    | false    |               |
@@ -95,6 +95,7 @@ The action has the following parameters:
 | python-coverage-version        | The version of the Python `coverage` package to use.                                                                                                                                                                                                                                               | false    | 7.17.2        |
 | ruby-tracer-version            | The version of datadog-ci Ruby gem to use.                                                                                                                                                                                                                                                         | false    | 1.43.0        |
 | go-tracer-version              | The version of [ddtest](https://github.com/DataDog/ddtest) to use for Go, `v1.14.0` or newer. See [Tracing Go tests](#tracing-go-tests).                                                                                                                                                           | false    | v1.16.0       |
+| rust-tracer-version            | The version of [dd-test-rs](https://github.com/DataDog/dd-test-rs) to use for Rust. A value that names no dd-test-rs release installs the latest release with a warning. See [Tracing Rust tests](#tracing-rust-tests).                                                                            | false    | v0.2.0        |
 | java-instrumented-build-system | If provided, only the specified build systems will be instrumented (allowed values are `gradle`,`maven`,`sbt`,`ant`,`all`). `all` is a special value that instruments every Java process. If this property is not provided, all known build systems will be instrumented (Gradle, Maven, SBT, Ant). | false    |               |
 | java-tracer-repository-url     | Base URL of a Maven repository (or proxy/mirror) used to download the Java tracer JAR and its sha256. The path under the base must follow the standard Maven layout for `com.datadoghq:dd-java-agent`. Defaults to Maven Central.                                            | false    |               |
 | java-tracer-repository-auth-header | Optional HTTP header used to authenticate against `java-tracer-repository-url`, provided as a complete `Name: Value` string (e.g. `Authorization: Bearer <token>`). Only used when `java-tracer-repository-url` is set. Redirects are followed by default; the header will be re-sent on each redirect hop. `curl` strips `Authorization` and `Cookie` headers on cross-origin redirects (different host, port, or scheme), but `wget` does not strip any header. Custom header names (e.g. `X-API-Key`) are never stripped by either tool — prefer the `Authorization: …` form when possible.                       | false    |               |
@@ -206,3 +207,27 @@ steps:
 - Keep the `.datadog` folder that the action creates in the workspace until the tests have run. On Linux and macOS, ddtest's `go` command is a link to the executable in that folder: if a later step deletes it, as `actions/checkout` or `git clean` do, `go` is the toolchain's again and `go test` runs without Test Optimization, with no warning.
 - With Test Impact Analysis, build the tests with coverage in count or atomic mode, such as `go test -cover -covermode=atomic ./...`, so each test reports the code it ran.
 - `go-tracer-version` selects a ddtest release. Up to v3.3.0, the action instrumented Go with Orchestrion and this input selected an Orchestrion version, so a value set then no longer installs that version. A value that names no ddtest release from `v1.14.0` on, such as `v1.8.0`, installs the latest ddtest with a warning, and a version from `v1.14.0` on installs the ddtest release with the same number. To keep Orchestrion, pin the action to v3.3.0 or earlier, by tag or full commit SHA. The `go-module-dir` input is deprecated and has no effect.
+
+### Tracing Rust tests
+
+Rust tests report through [dd-test-rs](https://github.com/DataDog/dd-test-rs). The action installs `dd-test-wrapper` in the `.datadog` folder and sets `RUSTC_WORKSPACE_WRAPPER` to its absolute path for the job's next steps, so `cargo test` and `cargo nextest run` report to Test Optimization without changes to your project.
+
+```yaml
+steps:
+  - name: Configure Datadog Test Optimization
+    uses: datadog/test-visibility-github-action@v3
+    with:
+      languages: rust
+      api_key: ${{ secrets.DD_API_KEY }}
+  - name: Run tests
+    run: cargo test
+```
+
+- The runner needs Cargo and Rust 1.81 or newer. With `languages: rust`, the action fails when either is missing or too old; with `languages: all`, it skips Rust with a warning and the job continues.
+- Linux and macOS on `amd64` and `arm64` are supported. Elsewhere, such as on Windows, the action skips Rust with a warning.
+- Run the tests in a later step of the same job, on the same machine or container. Test binaries start the wrapper from the absolute path that built them, so a test binary copied to another machine reports nothing unless `DD_TEST_AGENT` names the wrapper there.
+- The first build with the wrapper recompiles your workspace crates, because Cargo includes the wrapper in its build fingerprint. Dependencies stay cached.
+- Doctests, tests with a custom harness (`harness = false` or `#![test_runner]`) and test builds with `panic = "abort"` run normally but are not reported.
+- Test Impact Analysis and code coverage are not supported for Rust yet.
+- A `RUSTC_WORKSPACE_WRAPPER` that is already set is replaced, with a warning. Tools set through `RUSTC_WRAPPER`, such as sccache, keep working.
+- `rust-tracer-version` selects a [dd-test-rs release](https://github.com/DataDog/dd-test-rs/releases), with or without the `v` prefix. A value that names no release installs the latest one with a warning.

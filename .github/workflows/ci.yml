@@ -336,12 +336,168 @@ jobs:
           [ "$(command -v go)" != "$(cat toolchain-go.path)" ] || { echo "Error: go is still the toolchain's, not ddtest's go command."; exit 1; }
           scripts/test-go-reporting.sh go-cache TestCache reported
 
-  # create-library-version-bump-pr.sh reads the latest ddtest release and hands
-  # it to bump-library-versions.sh, which edits only the go-tracer-version
-  # default in action.yml and its README row.
+  # The action with installer v17 sets RUSTC_WORKSPACE_WRAPPER for the job's
+  # next steps; cargo test then reports through dd-test-wrapper. Windows has no
+  # dd-test-rs release, so the action there skips Rust with a warning.
+  test-rust-action-matrix:
+    name: Rust Matrix (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default inputs, ubuntu
+            os: ubuntu-latest
+            expect_action_failure: false
+            expect_instrumented: true
+            expected_version: default
+          - name: default inputs, macos
+            os: macos-latest
+            expect_action_failure: false
+            expect_instrumented: true
+            expected_version: default
+          - name: rust-tracer-version latest
+            os: ubuntu-latest
+            expect_action_failure: false
+            rust_tracer_version: latest
+            expect_instrumented: true
+            expected_version: latest
+          # dd-test-rs needs Rust 1.81: the action fails when Rust is requested.
+          - name: rust 1.80 failure
+            os: ubuntu-latest
+            rust_toolchain: '1.80.0'
+            expect_action_failure: true
+            expect_instrumented: false
+            expected_version: ''
+          - name: default inputs, windows
+            os: windows-latest
+            expect_action_failure: false
+            expect_instrumented: false
+            expected_version: ''
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Use Rust Below the Minimum
+        if: ${{ matrix.rust_toolchain }}
+        run: |
+          set -euo pipefail
+          rustup toolchain install "${{ matrix.rust_toolchain }}" --profile minimal
+          rustup default "${{ matrix.rust_toolchain }}"
+          rustc --version | grep -q "^rustc ${{ matrix.rust_toolchain }} " || { echo "Error: rustc is not ${{ matrix.rust_toolchain }}."; exit 1; }
+
+      - name: Create Rust Scenario
+        run: |
+          set -euo pipefail
+
+          # SMOKE_FAIL makes the test fail.
+          mkdir -p rust-smoke/tests
+          printf '[package]\nname = "smoke"\nversion = "0.0.0"\nedition = "2021"\n' > rust-smoke/Cargo.toml
+          cat > rust-smoke/tests/smoke.rs <<'EOF'
+          #[test]
+          fn test_smoke() {
+              assert!(std::env::var("SMOKE_FAIL").as_deref() != Ok("1"), "SMOKE_FAIL is set");
+          }
+          EOF
+
+      # An input set to an empty string is not its default, so each set of
+      # inputs has its own step.
+      - name: Run Instrumentation Action
+        if: ${{ !matrix.rust_tracer_version }}
+        id: run-action
+        continue-on-error: ${{ matrix.expect_action_failure }}
+        uses: ./
+        with:
+          languages: rust
+          api_key: "dummy"
+
+      - name: Run Instrumentation Action (rust-tracer-version)
+        if: ${{ matrix.rust_tracer_version }}
+        id: run-action-version
+        uses: ./
+        with:
+          languages: rust
+          api_key: "dummy"
+          rust-tracer-version: ${{ matrix.rust_tracer_version }}
+
+      - name: Run Rust Tests in the Next Step
+        env:
+          EXPECT_INSTRUMENTED: ${{ matrix.expect_instrumented }}
+          EXPECTED_VERSION: ${{ matrix.expected_version }}
+          EXPECTED_OUTCOME: ${{ matrix.expect_action_failure && 'failure' || 'success' }}
+          # Nothing listens there; test-rust-reporting.sh points its own run at
+          # its intake. The dummy API key reaches no Datadog site.
+          DD_CIVISIBILITY_AGENTLESS_URL: http://127.0.0.1:9
+        run: |
+          set -euo pipefail
+
+          action_outcome="${{ matrix.rust_tracer_version && steps.run-action-version.outcome || steps.run-action.outcome }}"
+          echo "The action finished with $action_outcome."
+          [ "$action_outcome" = "$EXPECTED_OUTCOME" ] || { echo "Error: Expected the action to end with $EXPECTED_OUTCOME."; exit 1; }
+
+          if [ "$EXPECT_INSTRUMENTED" = "true" ]; then
+            reporting=reported
+            expected_version="$EXPECTED_VERSION"
+            if [ "$expected_version" = "default" ]; then
+              expected_version="$(awk '/^  rust-tracer-version:/ { input = 1 } input && /^    default:/ { gsub(/[ \047\r]/, "", $2); print $2; exit }' action.yml)"
+            elif [ "$expected_version" = "latest" ]; then
+              # GitHub redirects releases/latest to the newest release's tag.
+              expected_version="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/DataDog/dd-test-rs/releases/latest)"
+              expected_version="${expected_version##*/}"
+            fi
+            echo "RUSTC_WORKSPACE_WRAPPER: ${RUSTC_WORKSPACE_WRAPPER:-}"
+            [ -n "${RUSTC_WORKSPACE_WRAPPER:-}" ] || { echo "Error: RUSTC_WORKSPACE_WRAPPER was not set."; exit 1; }
+            case "$RUSTC_WORKSPACE_WRAPPER" in
+              /*|[A-Za-z]:/*) ;;
+              *) echo "Error: RUSTC_WORKSPACE_WRAPPER is not an absolute path."; exit 1 ;;
+            esac
+            case "$RUSTC_WORKSPACE_WRAPPER" in
+              */.datadog/dd-test-wrapper) ;;
+              *) echo "Error: RUSTC_WORKSPACE_WRAPPER is not the wrapper the action installed."; exit 1 ;;
+            esac
+            [ -x "$RUSTC_WORKSPACE_WRAPPER" ] || { echo "Error: $RUSTC_WORKSPACE_WRAPPER is not executable."; exit 1; }
+            [ "${DD_TRACER_VERSION_RUST:-}" = "$expected_version" ] || { echo "Error: dd-test-rs ${DD_TRACER_VERSION_RUST:-?} was installed, not $expected_version."; exit 1; }
+          else
+            reporting=unreported
+            [ -z "${RUSTC_WORKSPACE_WRAPPER:-}" ] || { echo "Error: Expected RUSTC_WORKSPACE_WRAPPER to be unset, got '$RUSTC_WORKSPACE_WRAPPER'."; exit 1; }
+            [ -z "${DD_TRACER_VERSION_RUST:-}" ] || { echo "Error: Expected DD_TRACER_VERSION_RUST to be unset, got '$DD_TRACER_VERSION_RUST'."; exit 1; }
+          fi
+
+          # cargo test passes, and its test's event reaches the intake only
+          # when the wrapper instruments it.
+          scripts/test-rust-reporting.sh rust-smoke test_smoke "$reporting"
+
+          log="$PWD/rust-smoke.log"
+          if (cd rust-smoke && SMOKE_FAIL=1 cargo test) > "$log" 2>&1; then
+            cat "$log"
+            echo "Error: A failing test must fail cargo test."
+            exit 1
+          fi
+
+  # create-library-version-bump-pr.sh reads the latest library release and hands
+  # it to bump-library-versions.sh, which edits only that library's default in
+  # action.yml and its README row.
   test-library-version-bump:
-    name: Library Version Bump (Go)
+    name: Library Version Bump (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Go
+            library: go
+            input: go-tracer-version
+            releases: DataDog/ddtest
+            test_version: v1.99.0
+          - name: Rust
+            library: rust
+            input: rust-tracer-version
+            releases: DataDog/dd-test-rs
+            test_version: v9.9.9
     defaults:
       run:
         shell: bash
@@ -349,35 +505,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
-      - name: Bump Go to the Latest ddtest Release
+      - name: Bump ${{ matrix.name }} to the Latest Release
         env:
           GH_TOKEN: ${{ github.token }}
+          INPUT: ${{ matrix.input }}
+          LIBRARY: ${{ matrix.library }}
+          RELEASES: ${{ matrix.releases }}
+          TEST_VERSION: ${{ matrix.test_version }}
         run: |
           set -euo pipefail
 
-          go_default() {
-            awk '/^  go-tracer-version:/ { input = 1 } input && /^    default:/ { gsub(/[ \047\r]/, "", $2); print $2; exit }' action.yml
+          default_of() {
+            awk -v input="$INPUT" '$0 == "  " input ":" { input_seen = 1 } input_seen && /^    default:/ { gsub(/[ \047\r]/, "", $2); print $2; exit }' action.yml
           }
-          readme_go_default() {
-            awk -F '|' '$2 ~ /^ go-tracer-version / { gsub(/ /, "", $5); print $5 }' README.md
+          readme_default() {
+            awk -F '|' -v input="$INPUT" '$2 ~ ("^ " input " ") { gsub(/ /, "", $5); print $5 }' README.md
           }
 
           # The query that the bump PR script runs.
-          latest_go_query=$(grep '^latest_go=' scripts/create-library-version-bump-pr.sh)
-          eval "$latest_go_query"
-          echo "Latest release from the bump script's query: $latest_go"
+          latest_query=$(grep "^latest_$LIBRARY=" scripts/create-library-version-bump-pr.sh)
+          eval "$latest_query"
+          latest_variable="latest_$LIBRARY"
+          latest="${!latest_variable}"
+          echo "Latest release from the bump script's query: $latest"
           # GitHub redirects releases/latest to the newest release's tag.
-          latest_ddtest="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/DataDog/ddtest/releases/latest)"
-          latest_ddtest="${latest_ddtest##*/}"
-          [ "$latest_go" = "$latest_ddtest" ] || { echo "Error: The bump script's query returned $latest_go, not the latest ddtest release $latest_ddtest."; exit 1; }
+          latest_release="$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$RELEASES/releases/latest")"
+          latest_release="${latest_release##*/}"
+          [ "$latest" = "$latest_release" ] || { echo "Error: The bump script's query returned $latest, not the latest $RELEASES release $latest_release."; exit 1; }
 
-          for version in v1.99.0 "$latest_go"; do
+          for version in "$TEST_VERSION" "$latest"; do
             git checkout -- action.yml README.md
-            scripts/bump-library-versions.sh --go "$version"
-            [ "$(go_default)" = "$version" ] || { echo "Error: action.yml defaults to $(go_default), not $version."; exit 1; }
-            [ "$(readme_go_default)" = "$version" ] || { echo "Error: README.md defaults to $(readme_go_default), not $version."; exit 1; }
+            scripts/bump-library-versions.sh "--$LIBRARY" "$version"
+            [ "$(default_of)" = "$version" ] || { echo "Error: action.yml defaults to $(default_of), not $version."; exit 1; }
+            [ "$(readme_default)" = "$version" ] || { echo "Error: README.md defaults to $(readme_default), not $version."; exit 1; }
             changed=$(git diff --name-only | tr '\n' ' ')
-            if [ "$version" = "$latest_go" ] && [ -z "$changed" ]; then
+            if [ "$version" = "$latest" ] && [ -z "$changed" ]; then
               continue
             fi
             [ "$changed" = "README.md action.yml " ] || { echo "Error: The bump changed: $changed"; exit 1; }

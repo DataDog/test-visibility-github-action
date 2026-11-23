@@ -5,7 +5,7 @@ branding:
   color: 'purple'
 inputs:
   languages:
-    description: 'List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby", "go" (multiple languages can be specified as a space-separated list).'
+    description: 'List of languages to be instrumented. Can be either "all" or any of "java", "js", "python", "dotnet", "ruby", "go", "rust" (multiple languages can be specified as a space-separated list).'
     required: true
   api_key:
     description: 'Datadog API key. Can be found at https://app.datadoghq.com/organization-settings/api-keys'
@@ -45,6 +45,10 @@ inputs:
     description: 'The version of ddtest (https://github.com/DataDog/ddtest), which instruments Go tests, to use (optional); v1.14.0 is the oldest supported. A value that names no ddtest release from v1.14.0 on, such as an earlier Orchestrion version, installs the latest ddtest with a warning. Defaults to the version pinned by this action release.'
     required: false
     default: 'v1.16.0'
+  rust-tracer-version:
+    description: 'The version of dd-test-rs (https://github.com/DataDog/dd-test-rs), which instruments Rust tests, to use (optional). A value that names no dd-test-rs release installs the latest release with a warning. Defaults to the version pinned by this action release.'
+    required: false
+    default: 'v0.2.0'
   java-instrumented-build-system:
     description: 'If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented.'
     required: false
@@ -92,8 +96,8 @@ runs:
         echo "$GITHUB_ACTION_PATH" >> $GITHUB_PATH
       shell: bash
       env:
-        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v16.sh
-        INSTALLATION_SCRIPT_CHECKSUM: c17d89e4e0d2bbfb717217e05f7e64fb0f9c463a1836e46151080b1a6c621ea9
+        INSTALLATION_SCRIPT_URL: https://install.datadoghq.com/scripts/install_test_visibility_v17.sh
+        INSTALLATION_SCRIPT_CHECKSUM: 669f7969cd53bea87a49c611455272fcd809fc9a08d053a1b76e9c5958c1b3e5
         GITHUB_ACTION_PATH: ${{ github.action_path }}
 
     - name: Get Go cache directories
@@ -203,6 +207,7 @@ runs:
         DD_SET_COVERAGE_VERSION_PYTHON: ${{ inputs.python-coverage-version }}
         DD_SET_TRACER_VERSION_RUBY: ${{ inputs.ruby-tracer-version }}
         DD_SET_TRACER_VERSION_GO: ${{ inputs.go-tracer-version }}
+        DD_SET_TRACER_VERSION_RUST: ${{ inputs.rust-tracer-version }}
         DD_INSTRUMENTATION_BUILD_SYSTEM_JAVA: ${{ inputs.java-instrumented-build-system }}
         DD_SET_TRACER_REPOSITORY_URL_JAVA: ${{ inputs.java-tracer-repository-url }}
         DD_SET_AUTH_HEADER_JAVA: ${{ inputs.java-tracer-repository-auth-header }}
@@ -250,6 +255,9 @@ runs:
         fi
         if [ ! -z "$DD_TRACER_VERSION_GO" ]; then
           echo "- __Go:__ $DD_TRACER_VERSION_GO" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ ! -z "$DD_TRACER_VERSION_RUST" ]; then
+          echo "- __Rust:__ $DD_TRACER_VERSION_RUST" >> $GITHUB_STEP_SUMMARY
         fi
         echo "---" >> $GITHUB_STEP_SUMMARY
 
