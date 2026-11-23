@@ -444,11 +444,13 @@ jobs:
             expected_version="$EXPECTED_VERSION"
             if [ "$expected_version" = "default" ]; then
               expected_version="$(awk '/^  rust-tracer-version:/ { input = 1 } input && /^    default:/ { gsub(/[ \047\r]/, "", $2); print $2; exit }' action.yml)"
-            elif [ "$expected_version" = "latest" ]; then
+            fi
+            if [ "$expected_version" = "latest" ]; then
               # GitHub redirects releases/latest to the newest release's tag.
               expected_version="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/DataDog/dd-test-rs/releases/latest)"
               expected_version="${expected_version##*/}"
             fi
+            [[ "$expected_version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Error: The expected dd-test-rs version is '$expected_version'."; exit 1; }
             echo "RUSTC_WORKSPACE_WRAPPER: ${RUSTC_WORKSPACE_WRAPPER:-}"
             [ -n "${RUSTC_WORKSPACE_WRAPPER:-}" ] || { echo "Error: RUSTC_WORKSPACE_WRAPPER was not set."; exit 1; }
             case "$RUSTC_WORKSPACE_WRAPPER" in
@@ -493,11 +495,6 @@ jobs:
             input: go-tracer-version
             releases: DataDog/ddtest
             test_version: v1.99.0
-          - name: Rust
-            library: rust
-            input: rust-tracer-version
-            releases: DataDog/dd-test-rs
-            test_version: v9.9.9
     defaults:
       run:
         shell: bash

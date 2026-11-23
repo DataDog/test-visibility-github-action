@@ -15,7 +15,6 @@ Options:
   --coverage VERSION  Python coverage version
   --ruby VERSION      datadog-ci Ruby gem version
   --go VERSION        ddtest version, including the leading v
-  --rust VERSION      dd-test-rs version, including the leading v
   -h, --help          Show this help
 EOF
 }
@@ -27,7 +26,7 @@ while [[ $# -gt 0 ]]; do
       usage
       exit 0
       ;;
-    --dotnet|--java|--js|--python|--coverage|--ruby|--go|--rust)
+    --dotnet|--java|--js|--python|--coverage|--ruby|--go)
       if [[ -z "${2:-}" ]]; then
         usage >&2
         exit 1
@@ -60,8 +59,7 @@ input_names = {
   'python' => 'python-tracer-version',
   'coverage' => 'python-coverage-version',
   'ruby' => 'ruby-tracer-version',
-  'go' => 'go-tracer-version',
-  'rust' => 'rust-tracer-version'
+  'go' => 'go-tracer-version'
 }.freeze
 
 parsed_updates = ARGV.map do |argument|
@@ -69,7 +67,7 @@ parsed_updates = ARGV.map do |argument|
   abort "Unknown library '#{name}'" unless input_names.key?(name)
   abort "Missing version for '#{name}'" if version.nil? || version.empty?
 
-  expected_pattern = %w[go rust].include?(name) ? /^v\d+\.\d+\.\d+$/ : /^\d+\.\d+\.\d+$/
+  expected_pattern = name == 'go' ? /^v\d+\.\d+\.\d+$/ : /^\d+\.\d+\.\d+$/
   abort "Expected an exact #{name} version, got '#{version}'" unless version.match?(expected_pattern)
 
   [name, version]

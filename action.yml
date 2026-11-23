@@ -46,9 +46,9 @@ inputs:
     required: false
     default: 'v1.16.0'
   rust-tracer-version:
-    description: 'The version of dd-test-rs (https://github.com/DataDog/dd-test-rs), which instruments Rust tests, to use (optional). A value that names no dd-test-rs release installs the latest release with a warning. Defaults to the version pinned by this action release.'
+    description: 'The version of dd-test-rs (https://github.com/DataDog/dd-test-rs), which instruments Rust tests, to use (optional). Defaults to the latest dd-test-rs release. A value that names no dd-test-rs release also installs the latest release, with a warning.'
     required: false
-    default: 'v0.2.0'
+    default: 'latest'
   java-instrumented-build-system:
     description: 'If provided, only the specified build systems will be instrumented (allowed values are `gradle` and `maven`). Otherwise every Java process will be instrumented.'
     required: false
