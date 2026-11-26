@@ -20,31 +20,31 @@ inputs:
   dotnet-tracer-version:
     description: 'The version of Datadog .NET tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '3.57.0'
+    default: '3.59.0'
   java-tracer-version:
     description: 'The version of Datadog Java tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '1.68.2'
+    default: '1.69.1'
   js-tracer-version:
     description: 'The version of Datadog JS tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '6.24.0'
+    default: '6.27.0'
   python-tracer-version:
     description: 'The version of Datadog Python tracer to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '4.16.4'
+    default: '4.17.2'
   python-coverage-version:
     description: 'The version of the Python coverage package to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '7.17.2'
+    default: '7.17.5'
   ruby-tracer-version:
     description: 'The version of datadog-ci Ruby gem to use (optional). Defaults to the version pinned by this action release.'
     required: false
-    default: '1.43.0'
+    default: '1.44.1'
   go-tracer-version:
     description: 'The version of ddtest (https://github.com/DataDog/ddtest), which instruments Go tests, to use (optional); v1.14.0 is the oldest supported. A value that names no ddtest release from v1.14.0 on, such as an earlier Orchestrion version, installs the latest ddtest with a warning. Defaults to the version pinned by this action release.'
     required: false
-    default: 'v1.16.0'
+    default: 'v1.18.0'
   rust-tracer-version:
     description: 'The version of dd-test-rs (https://github.com/DataDog/dd-test-rs), which instruments Rust tests, to use (optional). Defaults to the latest dd-test-rs release. A value that names no dd-test-rs release also installs the latest release, with a warning.'
     required: false
